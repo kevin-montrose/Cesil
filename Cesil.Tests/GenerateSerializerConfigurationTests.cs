@@ -1,13 +1,15 @@
 using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using Cesil.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
 
-using static Cesil.SourceGenerator.Tests.TestHelper;
+using static Cesil.Tests.SourceGeneratorTestHelper;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
     public class SerializerConfigurationFixture : IAsyncLifetime
     {
@@ -36,12 +38,12 @@ namespace Foo
         => Task.CompletedTask;
     }
 
-    public class SerializerConfigurationTests: IClassFixture<SerializerConfigurationFixture>
+    public class GenerateSerializerConfigurationTests : IClassFixture<SerializerConfigurationFixture>
     {
         private readonly ITypeSymbol Type;
         private readonly IMethodSymbol Method;
 
-        public SerializerConfigurationTests(SerializerConfigurationFixture fixture)
+        public GenerateSerializerConfigurationTests(SerializerConfigurationFixture fixture)
         {
             Type = fixture.Type;
             Method = fixture.Method;
@@ -119,8 +121,86 @@ namespace Foo
         }
 
         [Fact]
+        public async Task BadGettersAsync()
+        {
+            // generic method
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class WriteMe
+    {
+        [SerializerMember(Name=""Hello"")]
+        public DateTime SomeMtd<T>() => DateTime.Now;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d => AssertDiagnostic(Diagnostics.MethodCannotBeGeneric, d)
+                );
+            }
+
+            // non-ordinary method
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class WriteMe
+    {
+        [SerializerMember(Name=""Hello"")]
+        public static WriteMe operator +(WriteMe a, WriteMe b)
+        => a;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d => AssertDiagnostic(Diagnostics.MethodMustBeOrdinary, d)
+                );
+            }
+        }
+
+        [Fact]
         public async Task BadFormattersAsync()
         {
+            // no default for type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadFormatters
+    {
+        public BadFormatters Bar { get; set; }
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.NoBuiltInFormatter, d);
+                    }
+                );
+            }
+
             // not paired (missing method)
             {
                 var gen = new SerializerGenerator();
@@ -671,6 +751,176 @@ namespace Foo
         [Fact]
         public async Task BadShouldSerializeAsync()
         {
+            // method not found
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadShouldSerializes
+    {
+        [SerializerMember(
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = ""Foo""
+        )]
+        public int Bar { get; set; }
+
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.CouldNotFindMethod, d);
+                    }
+                );
+            }
+
+            // method is generic
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadShouldSerializes
+    {
+        [SerializerMember(
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(GenericShouldSerialize)
+        )]
+        public int Bar { get; set; }
+
+        public bool GenericShouldSerialize<T>() => true;
+
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.MethodCannotBeGeneric, d);
+                    }
+                );
+            }
+
+            // method does not return bool
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadShouldSerializes
+    {
+        [SerializerMember(
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerialize)
+        )]
+        public int Bar { get; set; }
+
+        public string ShouldSerialize() => """";
+
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.MethodMustReturnBool, d);
+                    }
+                );
+            }
+
+            // method not accessible
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadShouldSerializes
+    {
+        [SerializerMember(
+            ShouldSerializeType = typeof(BadShouldSerializes),
+            ShouldSerializeMethodName = nameof(ShouldSerialize)
+        )]
+        public int Bar { get; set; }
+
+        private bool ShouldSerialize() => true;
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.MethodNotPublicOrInternal, d);
+                    }
+                );
+            }
+
+
+            // instance method on wrong type
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    class Fizz
+    {
+        public bool ShouldSerialize() => true;
+    }
+
+    [GenerateSerializer]
+    class BadShouldSerializes
+    {
+        [SerializerMember(
+            ShouldSerializeType = typeof(Fizz),
+            ShouldSerializeMethodName = nameof(ShouldSerialize)
+        )]
+        public int Bar { get; set; }
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.ShouldSerializeInstanceOnWrongType, d);
+                    }
+                );
+            }
+
             // not paired (missing method)
             {
                 var gen = new SerializerGenerator();
@@ -1165,6 +1415,35 @@ namespace Foo
         [Fact]
         public async Task BadEmitDefaultValueAsync()
         {
+            // not Yes or No
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using System;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class BadEmitDefaultValues
+    {
+        [SerializerMember(
+            EmitDefaultValue = (EmitDefaultValue)3
+        )]
+        public int Bar { get; set; }
+    }
+}", gen);
+
+                Assert.Collection(
+                    diags,
+                    d =>
+                    {
+                        AssertDiagnostic(Diagnostics.UnexpectedConstantValue, d);
+                    }
+                );
+            }
+
             // multiple declarations
             {
                 var gen = new SerializerGenerator();
@@ -1987,9 +2266,881 @@ namespace Foo
             );
         }
 
+        [Fact]
+        public async Task InheritedMembersAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    abstrct class WriteMeBase
+    {
+        public int Bar { get; set; }
+    }
+
+    [GenerateSerializer]
+    class WriteMe : WriteMeBase
+    {
+        public string Fizz { get; set; }
+    }
+}", gen);
+
+            Assert.Empty(diags);
+
+            var toSerialize = Assert.Single(gen.Members);
+            Assert.Equal("Foo.WriteMe", toSerialize.Key.ToFullyQualifiedName());
+            Assert.Collection(
+                toSerialize.Value,
+                bar =>
+                {
+                    Assert.Equal("Bar", bar.Name);
+
+                    var prop = bar.Getter.Property;
+                    Assert.NotNull(prop);
+                    Assert.Equal("Bar", prop.Name);
+                },
+                fizz =>
+                {
+                    Assert.Equal("Fizz", fizz.Name);
+
+                    var prop = fizz.Getter.Property;
+                    Assert.NotNull(prop);
+                    Assert.Equal("Fizz", fizz.Name);
+                }
+            );
+        }
+
+
+        [Fact]
+        public async Task DefaultShouldSerializeAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using System;
+using System.Buffers;
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    class WriteMe
+    {
+        public string Fizz { get; set; }
+
+        public bool ShouldSerializeFizz() 
+        { 
+            return true;
+        }
+    }
+}", gen);
+
+            Assert.Empty(diags);
+
+            var toSerialize = Assert.Single(gen.Members);
+            Assert.Equal("Foo.WriteMe", toSerialize.Key.ToFullyQualifiedName());
+            Assert.Collection(
+                toSerialize.Value,
+                fizz =>
+                {
+                    Assert.Equal("Fizz", fizz.Name);
+
+                    var prop = fizz.Getter.Property;
+                    Assert.NotNull(prop);
+                    Assert.Equal("Fizz", fizz.Name);
+
+                    var shouldSerialize = fizz.ShouldSerialize?.Method;
+                    Assert.NotNull(shouldSerialize);
+                    Assert.Equal("ShouldSerializeFizz", shouldSerialize.Name);
+                }
+            );
+        }
+
+        [Fact]
+        public async Task RecordsAsync()
+        {
+            // simple
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public record Records1([property:SerializerMember]int A, [property:SerializerMember]string B);
+}", gen);
+
+                Assert.Empty(diags);
+
+                var record = Assert.Single(gen.Members);
+                Assert.Equal("Foo.Records1", record.Key.ToFullyQualifiedName());
+                Assert.Collection(
+                    record.Value,
+                    a =>
+                    {
+                        Assert.Equal("A", a.Name);
+
+                        var prop = a.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("A", prop.Name);
+                    },
+                    b =>
+                    {
+                        Assert.Equal("B", b.Name);
+
+                        var prop = b.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("B", prop.Name);
+                    }
+                );
+            }
+
+            // additional properties
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateSerializer]
+    public record Records2_1([property:SerializerMember]int A)
+    {
+        [SerializerMember]
+        internal string B { get; set; }
+    }
+
+    [GenerateSerializer]
+    public record Records2_2([property:SerializerMember]int A)
+    {
+        internal string B { get; set; }
+    }
+}", gen);
+
+                Assert.Empty(diags);
+
+                var record21 = Assert.Single(gen.Members, x => x.Key.ToFullyQualifiedName() == "Foo.Records2_1");
+                Assert.Collection(
+                    record21.Value,
+                    a =>
+                    {
+                        Assert.Equal("A", a.Name);
+
+                        var prop = a.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("A", prop.Name);
+                    },
+                    b =>
+                    {
+                        Assert.Equal("B", b.Name);
+
+                        var prop = b.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("B", prop.Name);
+                    }
+                );
+
+                var record22 = Assert.Single(gen.Members, x => x.Key.ToFullyQualifiedName() == "Foo.Records2_2");
+                Assert.Collection(
+                    record22.Value,
+                    a =>
+                    {
+                        Assert.Equal("A", a.Name);
+
+                        var prop = a.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("A", prop.Name);
+                    }
+                );
+            }
+
+            // additional properties
+            {
+                var gen = new SerializerGenerator();
+                var (_, diags) = await RunSourceGeneratorAsync(
+    @"
+using Cesil;
+
+namespace Foo 
+{   
+    public record Records1([SerializerMember]int A, [SerializerMember]string B);
+
+    [GenerateSerializer]
+    public record Records3(int C) : Records1(C * 2, C.ToString()+""!"") { }
+}", gen);
+
+                Assert.Empty(diags);
+
+                var record3 = Assert.Single(gen.Members, x => x.Key.ToFullyQualifiedName() == "Foo.Records3");
+                Assert.Collection(
+                    record3.Value,
+                    a =>
+                    {
+                        Assert.Equal("A", a.Name);
+
+                        var prop = a.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("A", prop.Name);
+                    },
+                    b =>
+                    {
+                        Assert.Equal("B", b.Name);
+
+                        var prop = b.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("B", prop.Name);
+                    },
+                    c =>
+                    {
+                        Assert.Equal("C", c.Name);
+
+                        var prop = c.Getter.Property;
+                        Assert.NotNull(prop);
+                        Assert.Equal("C", prop.Name);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task MultipleNamesAsync()
+        {
+            var gen = new SerializerGenerator();
+            var (_, diags) = await RunSourceGeneratorAsync(
+@"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        [DataMember(Name = ""World"")]
+        public string A { get; set; }
+    }
+}", gen);
+
+            var d = Assert.Single(diags);
+            AssertDiagnostic(Diagnostics.NameSpecifiedMultipleTimes, d);
+        }
+
+        [Fact]
+        public async Task EmitDefaultAsync()
+        {
+            // methods
+            {
+                // Yes
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"", EmitDefaultValue = EmitDefaultValue.Yes)]
+        public string GetA() => """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // No
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"", EmitDefaultValue = EmitDefaultValue.No)]
+        public string GetA() => """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.False(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // default
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        public string GetA() => """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // DataMember true
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        [DataMember(EmitDefaultValue = true)]
+        public string GetA() => """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // DataMember false
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        [DataMember(EmitDefaultValue = false)]
+        public string GetA() => """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.False(a.EmitDefaultValue);
+                        }
+                    );
+                }
+            }
+
+            // fields
+            {
+                // Yes
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"", EmitDefaultValue = EmitDefaultValue.Yes)]
+        public string A = """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // No
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"", EmitDefaultValue = EmitDefaultValue.No)]
+        public string A = """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.False(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // default
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        public string A = """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // DataMember true
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        [DataMember(EmitDefaultValue = true)]
+        public string A = """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.True(a.EmitDefaultValue);
+                        }
+                    );
+                }
+
+                // DataMember false
+                {
+                    var gen = new SerializerGenerator();
+                    var (_, diags) = await RunSourceGeneratorAsync(
+        @"
+using Cesil;
+using System.Runtime.Serialization;
+
+namespace Foo 
+{
+    [GenerateSerializer]
+    public class Bar 
+    {
+        [SerializerMember(Name = ""Hello"")]
+        [DataMember(EmitDefaultValue = false)]
+        public string A = """";
+    }
+}", gen);
+                    Assert.Empty(diags);
+
+                    var mems = Assert.Single(gen.Members);
+
+                    Assert.Collection(
+                        mems.Value,
+                        a =>
+                        {
+                            Assert.Equal("Hello", a.Name);
+                            Assert.False(a.EmitDefaultValue);
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public async Task InferDefaultShouldSerializeAsync()
+        {
+            // non-method has name collision
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public bool ShouldSerializeBar { get; set; }
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.Null(res);
+                Assert.Empty(diags);
+            }
+
+            // doesn't return bool
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public void ShouldSerializeBar() { }
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.Null(res);
+                Assert.Empty(diags);
+            }
+
+            // static, no params is fine
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public static bool ShouldSerializeBar() => true;
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.NotNull(res);
+                Assert.Equal("ShouldSerializeBar", res.Method.Name);
+            }
+
+            // static, takes context so is fine
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public static bool ShouldSerializeBar(in WriteContext ctx) => true;
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.NotNull(res);
+                Assert.Equal("ShouldSerializeBar", res.Method.Name);
+            }
+
+            // static, takes rows so is fine
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public static bool ShouldSerializeBar(Foo row) => true;
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.NotNull(res);
+                Assert.Equal("ShouldSerializeBar", res.Method.Name);
+            }
+
+            // static, takes non-row so no good
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public static bool ShouldSerializeBar(string row) => true;
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.Null(res);
+            }
+
+            // instance, has param so no good
+            {
+                var comp =
+                    await GetCompilationAsync(@"
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            public class Foo
+                            {
+                                public string Bar { get; set; }
+
+                                public bool ShouldSerializeBar(string row) => true;
+                            }
+                        }",
+                        nameof(InferDefaultShouldSerializeAsync),
+                        NullableContextOptions.Disable
+                    );
+
+                var attrMembers = comp.GetAttributedMembers();
+
+                var t = comp.GetTypeByMetadataName("Test.Foo");
+
+                var builtIns = BuiltInTypes.Create(comp);
+                Assert.True(FrameworkTypes.TryCreate(comp, builtIns, out var framework));
+                Assert.True(CesilTypes.TryCreate(comp, out var ourTypes));
+                var sts = new SerializerTypes(builtIns, framework, ourTypes);
+
+                var diags = ImmutableArray<Diagnostic>.Empty;
+                var res = SourceGenerator.SerializableMember.InferDefaultShouldSerialize(attrMembers, sts, t, "Bar", ImmutableArray<AttributeSyntax>.Empty, null, ref diags);
+                Assert.Null(res);
+            }
+        }
+
+        [Fact]
+        public async Task OddMemberAsync()
+        {
+            var gen = new SerializerGenerator();
+            var comp =
+                    await RunSourceGeneratorAsync(@"
+                        using System;
+                        using Cesil;
+
+                        namespace Test
+                        {
+                            [GenerateSerializer]
+                            public class Buzz
+                            {
+                                public event Action Foo;
+
+                                public int Bar { get; set; }
+                            }
+                        }",
+                        gen
+                    );
+
+            Assert.Single(gen.ToGenerateFor);
+            var ms = Assert.Single(gen.Members);
+            var m = Assert.Single(ms.Value);
+            Assert.Equal("Bar", m.Name);
+        }
+
+        private void AssertDiagnostic(Func<Location, string, string[], Diagnostic> shouldBe, Diagnostic actuallyIs)
+        {
+            var id = shouldBe(null, "foo", new[] { "fizz", "buzz" }).Id;
+            Assert.Equal(id, actuallyIs.Id);
+        }
+
         private static void AssertDiagnostic(Func<Location, Diagnostic> shouldBe, Diagnostic actuallyIs)
         {
             var id = shouldBe(null).Id;
+            Assert.Equal(id, actuallyIs.Id);
+        }
+
+        private void AssertDiagnostic(Func<Location, ITypeSymbol, Diagnostic> shouldBe, Diagnostic actuallyIs)
+        {
+            var id = shouldBe(null, Type).Id;
             Assert.Equal(id, actuallyIs.Id);
         }
 

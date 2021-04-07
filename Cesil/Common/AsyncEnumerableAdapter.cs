@@ -51,7 +51,7 @@ namespace Cesil
 
             if (Enumerated)
             {
-                return Throw.InvalidOperationException<IAsyncEnumerator<T>>("Cannot enumerate this enumerable multiple times");
+                Throw.InvalidOperationException("Cannot enumerate this enumerable multiple times");
             }
 
             Enumerated = true;

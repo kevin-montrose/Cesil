@@ -67,7 +67,7 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(csv))
             {
-                using (var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, MemoryPool<char>.Shared, out _))
+                var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _);
                 {
                     var detector = new RowEndingDetector(new ReaderStateMachine(), config.Options, MemoryPool<char>.Shared, charLookup, new TextReaderAdapter(str), config.Options.ValueSeparator.AsMemory());
                     var detect = detector.Detect();
@@ -103,7 +103,7 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(csv))
             {
-                using (var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, MemoryPool<char>.Shared, out _))
+                var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _);
                 {
                     var detector = new RowEndingDetector(new ReaderStateMachine(), config.Options, MemoryPool<char>.Shared, charLookup, new TextReaderAdapter(str), config.Options.ValueSeparator.AsMemory());
                     var detect = detector.Detect();
@@ -158,15 +158,13 @@ namespace Cesil.Tests
                     async (config, getReader) =>
                     {
                         var configForced = config as AsyncCountingAndForcingConfig<_Test>;
-                        var configUnpin = config as AsyncInstrumentedPinConfig<_Test>;
                         var configCancel = config as AsyncCancelControlConfig<_Test>;
-                        var cInner = (ConcreteBoundConfiguration<_Test>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
+                        var cInner = (ConcreteBoundConfiguration<_Test>)(configForced?.Inner ?? configCancel?.Inner ?? config);
 
                         await using (var str = await getReader(csv))
-                        await using (configUnpin?.CreateAsyncReader(str))
                         {
-                            var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
-                            using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, MemoryPool<char>.Shared, out _))
+                            var stateMachine = new ReaderStateMachine();
+                            var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, out _);
                             using (var detector = new RowEndingDetector(stateMachine, cInner.Options, MemoryPool<char>.Shared, charLookup, str, cInner.Options.ValueSeparator.AsMemory()))
                             {
                                 if (configForced != null)
@@ -211,15 +209,13 @@ namespace Cesil.Tests
                 async (config, getReader) =>
                 {
                     var configForced = config as AsyncCountingAndForcingConfig<_Test>;
-                    var configUnpin = config as AsyncInstrumentedPinConfig<_Test>;
                     var configCancel = config as AsyncCancelControlConfig<_Test>;
-                    var cInner = (ConcreteBoundConfiguration<_Test>)(configUnpin?.Inner ?? configForced?.Inner ?? configCancel?.Inner ?? config);
+                    var cInner = (ConcreteBoundConfiguration<_Test>)(configForced?.Inner ?? configCancel?.Inner ?? config);
 
                     await using (var str = await getReader(csv))
-                    await using (configUnpin?.CreateAsyncReader(str))
                     {
-                        var stateMachine = configUnpin?.StateMachine ?? new ReaderStateMachine();
-                        using (var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, MemoryPool<char>.Shared, out _))
+                        var stateMachine = new ReaderStateMachine();
+                        var charLookup = CharacterLookup.MakeCharacterLookup(cInner.Options, out _);
                         using (var detector = new RowEndingDetector(stateMachine, cInner.Options, MemoryPool<char>.Shared, charLookup, str, cInner.Options.ValueSeparator.AsMemory()))
                         {
                             if (configForced != null)

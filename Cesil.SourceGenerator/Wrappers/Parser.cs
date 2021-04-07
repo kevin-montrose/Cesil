@@ -369,6 +369,8 @@ namespace Cesil.SourceGenerator
             Add(builder, "System.UInt32", true, false, defaultTypeParsers, "TryParseUInt");
             Add(builder, "System.Int64", true, false, defaultTypeParsers, "TryParseLong");
             Add(builder, "System.UInt64", true, false, defaultTypeParsers, "TryParseULong");
+            Add(builder, "System.IntPtr", true, false, defaultTypeParsers, "TryParseNInt");
+            Add(builder, "System.UIntPtr", true, false, defaultTypeParsers, "TryParseNUInt");
             Add(builder, "System.Single", true, false, defaultTypeParsers, "TryParseFloat");
             Add(builder, "System.Double", true, false, defaultTypeParsers, "TryParseDouble");
             Add(builder, "System.Decimal", true, false, defaultTypeParsers, "TryParseDecimal");
@@ -397,6 +399,8 @@ namespace Cesil.SourceGenerator
             Add(builder, "System.UInt32", true, true, defaultTypeParsers, "TryParseNullableUInt");
             Add(builder, "System.Int64", true, true, defaultTypeParsers, "TryParseNullableLong");
             Add(builder, "System.UInt64", true, true, defaultTypeParsers, "TryParseNullableULong");
+            Add(builder, "System.IntPtr", true, true, defaultTypeParsers, "TryParseNullableNInt");
+            Add(builder, "System.UIntPtr", true, true, defaultTypeParsers, "TryParseNullableNUInt");
             Add(builder, "System.Single", true, true, defaultTypeParsers, "TryParseNullableFloat");
             Add(builder, "System.Double", true, true, defaultTypeParsers, "TryParseNullableDouble");
             Add(builder, "System.Decimal", true, true, defaultTypeParsers, "TryParseNullableDecimal");
@@ -451,44 +455,11 @@ namespace Cesil.SourceGenerator
                 return false;
             }
 
-            if (CreatesType != null)
+            if(CreatesType != null && Method != null)
             {
-                if (other.CreatesType == null)
-                {
-                    return false;
-                }
-
-                if (!other.CreatesType.Equals(CreatesType, SymbolEqualityComparer.IncludeNullability))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (other.CreatesType != null)
-                {
-                    return false;
-                }
-            }
-
-            if (Method != null)
-            {
-                if (other.Method == null)
-                {
-                    return false;
-                }
-
-                if (!other.Method.Equals(Method, SymbolEqualityComparer.IncludeNullability))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (other.Method != null)
-                {
-                    return false;
-                }
+                return
+                    CreatesType.Equals(other.CreatesType, SymbolEqualityComparer.Default) &&
+                    Method.Equals(other.Method, SymbolEqualityComparer.Default);
             }
 
             return

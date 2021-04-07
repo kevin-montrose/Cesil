@@ -52,7 +52,8 @@ namespace Cesil
                     return (MemoizedName ??= new string(_NameMemory.Value.Span));
                 }
 
-                return Throw.InvalidOperationException<string>($"{nameof(Name)} is not set, check HasName before calling this");
+                Throw.InvalidOperationException($"{nameof(Name)} is not set, check HasName before calling this");
+                return default;
             }
         }
 
@@ -79,7 +80,8 @@ namespace Cesil
                     return _NameMemory.Value;
                 }
 
-                return Throw.InvalidOperationException<ReadOnlyMemory<char>>($"{nameof(NameMemory)} is not set, check HasName before calling this");
+                Throw.InvalidOperationException($"{nameof(NameMemory)} is not set, check HasName before calling this");
+                return default;
             }
         }
 
@@ -104,7 +106,7 @@ namespace Cesil
         {
             if (index < 0)
             {
-                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
+                Throw.ArgumentException($"Must be >= 0, found {index}", nameof(index));
             }
 
             return CreateInner(index, null, null);
@@ -121,7 +123,7 @@ namespace Cesil
         {
             if (index < 0)
             {
-                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
+                Throw.ArgumentException($"Must be >= 0, found {index}", nameof(index));
             }
 
             Utils.CheckArgumentNull(name, nameof(name));
@@ -140,7 +142,7 @@ namespace Cesil
         {
             if (index < 0)
             {
-                return Throw.ArgumentException<ColumnIdentifier>($"Must be >= 0, found {index}", nameof(index));
+                Throw.ArgumentException($"Must be >= 0, found {index}", nameof(index));
             }
 
             return CreateInner(index, null, name);

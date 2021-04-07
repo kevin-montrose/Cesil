@@ -74,42 +74,32 @@ namespace Cesil
             }
         }
 
-        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool pinAcquired, bool checkRow, ref dynamic row)
+        internal override ReadWithCommentResult<dynamic> TryReadInner(bool returnComments, bool checkRow, ref dynamic row)
         {
-            ReaderStateMachine.PinHandle handle = default;
-
-            if (!pinAcquired)
-            {
-                handle = StateMachine.Pin();
-            }
-
             TryAllocateAndTrack(this, ColumnNames, ref NotifyOnDisposeHead, checkRow, ref row);
 
-            using (handle)
+            var madeProgress = true;
+            while (true)
             {
-                var madeProgress = true;
-                while (true)
+                PreparingToWriteToBuffer();
+                var available = Buffer.Read(Inner, madeProgress);
+                if (available == 0)
                 {
-                    PreparingToWriteToBuffer();
-                    var available = Buffer.Read(Inner, madeProgress);
-                    if (available == 0)
-                    {
-                        var endRes = EndOfData();
+                    var endRes = EndOfData();
 
-                        return HandleAdvanceResult(endRes, returnComments, ending: true);
-                    }
+                    return HandleAdvanceResult(endRes, returnComments, ending: true);
+                }
 
-                    if (!RowBuilder.RowStarted)
-                    {
-                        StartRow();
-                    }
+                if (!RowBuilder.RowStarted)
+                {
+                    StartRow();
+                }
 
-                    var res = AdvanceWork(available, out madeProgress);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        return possibleReturn;
-                    }
+                var res = AdvanceWork(available, out madeProgress);
+                var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                {
+                    return possibleReturn;
                 }
             }
         }
@@ -216,8 +206,7 @@ namespace Cesil
             {
                 Cleanup(this);
 
-                Throw.PoisonAndRethrow<object>(this, e);
-                return;
+                Throw.PoisonAndRethrow(this, e);
             }
 
             Cleanup(this);
@@ -228,8 +217,6 @@ namespace Cesil
                 self.RowBuilder.Dispose();
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
-                self.StateMachine.Dispose();
-                self.SharedCharacterLookup.Dispose();
 
                 // if we never acquired one, this will moved the count to -1
                 //   which WON'T actually release NameLookup

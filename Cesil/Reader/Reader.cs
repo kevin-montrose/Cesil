@@ -19,42 +19,32 @@ namespace Cesil
             }
         }
 
-        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool pinAcquired, bool checkRecord, ref T record)
+        internal override ReadWithCommentResult<T> TryReadInner(bool returnComments, bool checkRecord, ref T record)
         {
-            ReaderStateMachine.PinHandle handle = default;
-
-            if (!pinAcquired)
-            {
-                handle = StateMachine.Pin();
-            }
-
             TryPreAllocateRow(checkRecord, ref record);
 
-            using (handle)
+            var madeProgress = true;
+            while (true)
             {
-                var madeProgress = true;
-                while (true)
+                PreparingToWriteToBuffer();
+                var available = Buffer.Read(Inner, madeProgress);
+                if (available == 0)
                 {
-                    PreparingToWriteToBuffer();
-                    var available = Buffer.Read(Inner, madeProgress);
-                    if (available == 0)
-                    {
-                        var endRes = EndOfData();
+                    var endRes = EndOfData();
 
-                        return HandleAdvanceResult(endRes, returnComments, ending: true);
-                    }
+                    return HandleAdvanceResult(endRes, returnComments, ending: true);
+                }
 
-                    if (!RowBuilder.RowStarted)
-                    {
-                        StartRow();
-                    }
+                if (!RowBuilder.RowStarted)
+                {
+                    StartRow();
+                }
 
-                    var res = AdvanceWork(available, out madeProgress);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        return possibleReturn;
-                    }
+                var res = AdvanceWork(available, out madeProgress);
+                var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                {
+                    return possibleReturn;
                 }
             }
         }
@@ -127,8 +117,7 @@ namespace Cesil
                 {
                     Cleanup(this);
 
-                    Throw.PoisonAndRethrow<object>(this, e);
-                    return;
+                    Throw.PoisonAndRethrow(this, e);
                 }
 
                 Cleanup(this);
@@ -140,8 +129,6 @@ namespace Cesil
                 self.RowBuilder.Dispose();
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
-                self.StateMachine?.Dispose();
-                self.SharedCharacterLookup.Dispose();
             }
         }
 

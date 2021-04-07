@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace Cesil
 {
-    internal sealed partial class ReaderStateMachine : ITestableDisposable
+    internal sealed partial class ReaderStateMachine
     {
-        public bool IsDisposed => CurrentState == State.NONE;
-
         internal State CurrentState;
 
         internal ReadRowEnding RowEndings;
@@ -16,15 +13,9 @@ namespace Cesil
 #if DEBUG
         private int TransitionMatrixMemoryOffset;
 #endif
-        private ReadOnlyMemory<TransitionRule> TransitionMatrixMemory;
         private CharacterLookup CharacterLookup;
 
-        private MemoryHandle CharLookupPin;
         private unsafe CharacterType* CharLookup;
-
-
-
-        private MemoryHandle TransitionMatrixHandle;
         private unsafe TransitionRule* TransitionMatrix;
 
         internal unsafe bool IsPinned => CharLookup != null || TransitionMatrix != null;
@@ -35,7 +26,7 @@ namespace Cesil
         internal static bool IsInEscapedValue(State state)
         => (((byte)state) & IN_ESCAPED_VALUE_MASK) == IN_ESCAPED_VALUE_MASK;
 
-        internal void Initialize(
+        internal unsafe void Initialize(
             CharacterLookup preAllocLookup,
             char? escapeStartChar,
             char? escapeChar,
@@ -47,6 +38,7 @@ namespace Cesil
         )
         {
             CharacterLookup = preAllocLookup;
+            CharLookup = (CharacterType*)preAllocLookup.Memory;
             RowEndings = rowEndings;
             HasHeaders = hasHeaders;
 
@@ -59,11 +51,11 @@ namespace Cesil
                     CurrentState = State.Record_Start;
                     break;
                 default:
-                    Throw.InvalidOperationException<object>($"Unexpected {nameof(ReadHeader)}: {HasHeaders}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(ReadHeader)}: {HasHeaders}");
                     break;
             }
 
-            TransitionMatrixMemory =
+            TransitionMatrix =
                 GetTransitionMatrix(
                     RowEndings,
                     escapeStartChar.HasValue && escapeStartChar == escapeChar,
@@ -76,8 +68,6 @@ namespace Cesil
                     out _
 #endif
             );
-
-
         }
 
         internal AdvanceResult EndOfData()
@@ -129,14 +119,6 @@ namespace Cesil
             return cOffset;
         }
 
-        internal void EnsurePinned()
-        {
-            if (!IsPinned)
-            {
-                PinInner();
-            }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe AdvanceResult AdvanceInner(State fromState, CharacterType cType)
         {
@@ -158,52 +140,34 @@ namespace Cesil
             return forCharOffset;
         }
 
-        public void Dispose()
-        {
-            if (!IsDisposed)
-            {
-                CurrentState = State.NONE;
-            }
-        }
-
 #if DEBUG
         // just for debugging purposes
         [ExcludeFromCoverage("Purely for debugging")]
         internal unsafe string ToDebugString()
         {
-            PinHandle? pin = null;
-            if (!IsPinned)
-            {
-                pin = Pin();
-            }
+            var ret = new System.Text.StringBuilder();
+            ret.AppendLine($"Offset = {TransitionMatrixMemoryOffset}");
 
-            using (pin)
+            foreach (State? sNull in Enum.GetValues(Types.ReaderStateMachine.State))
             {
-                var ret = new System.Text.StringBuilder();
-                ret.AppendLine($"Offset = {TransitionMatrixMemoryOffset}");
+                var s = Utils.NonNullValue(sNull);
 
-                foreach (State? sNull in Enum.GetValues(Types.ReaderStateMachine.State))
+                ret.AppendLine();
+                ret.AppendLine($"From {s}");
+                ret.AppendLine("===");
+                foreach (CharacterType? cNull in Enum.GetValues(Types.ReaderStateMachine.CharacterType))
                 {
-                    var s = Utils.NonNullValue(sNull);
+                    var c = Utils.NonNullValue(cNull);
 
-                    ret.AppendLine();
-                    ret.AppendLine($"From {s}");
-                    ret.AppendLine("===");
-                    foreach (CharacterType? cNull in Enum.GetValues(Types.ReaderStateMachine.CharacterType))
-                    {
-                        var c = Utils.NonNullValue(cNull);
+                    var offset = GetTransitionMatrixOffset(s, c);
 
-                        var offset = GetTransitionMatrixOffset(s, c);
+                    var rule = TransitionMatrix[offset];
 
-                        EnsurePinned();
-                        var rule = TransitionMatrix[offset];
-
-                        ret.AppendLine($"  {c} => ({rule.NextState}, {rule.Result})");
-                    }
+                    ret.AppendLine($"  {c} => ({rule.NextState}, {rule.Result})");
                 }
-
-                return ret.ToString();
             }
+
+            return ret.ToString();
         }
 #endif
     }

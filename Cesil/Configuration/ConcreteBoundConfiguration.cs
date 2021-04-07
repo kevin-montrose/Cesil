@@ -40,8 +40,7 @@ namespace Cesil
         {
             if (!RowBuilder.HasValue)
             {
-                Throw.InvalidOperationException<object>($"Cannot make a reader for {typeof(T).Name}, returned {nameof(InstanceProvider)} and {nameof(DeserializableMember)}s were not sufficient.");
-                return;
+                Throw.InvalidOperationException($"Cannot make a reader for {typeof(T).Name}, returned {nameof(InstanceProvider)} and {nameof(DeserializableMember)}s were not sufficient.");
             }
         }
 
@@ -50,8 +49,7 @@ namespace Cesil
         {
             if (SerializeColumns.Length == 0)
             {
-                Throw.InvalidOperationException<object>($"No columns configured to write for {typeof(T).FullName}");
-                return;
+                Throw.InvalidOperationException($"No columns configured to write for {typeof(T).FullName}");
             }
         }
 
@@ -59,28 +57,28 @@ namespace Cesil
         private IRowConstructor<T> GetMutableRowBuilder()
         => RowBuilder.Value.Clone(Options);
 
-        internal override IReader<T> CreateReader(IReaderAdapter inner, object? context = null)
+        internal override Reader<T> CreateReader(IReaderAdapter inner, object? context = null)
         {
             AssertCanMakeReader();
 
             return new Reader<T>(inner, this, context, GetMutableRowBuilder());
         }
 
-        internal override IAsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object? context = null)
+        internal override AsyncReader<T> CreateAsyncReader(IAsyncReaderAdapter inner, object? context = null)
         {
             AssertCanMakeReader();
 
             return new AsyncReader<T>(inner, this, context, GetMutableRowBuilder());
         }
 
-        internal override IWriter<T> CreateWriter(IWriterAdapter inner, object? context = null)
+        internal override Writer<T> CreateWriter(IWriterAdapter inner, object? context = null)
         {
             AssertCanMakeWriter();
 
             return new Writer<T>(this, inner, context);
         }
 
-        internal override IAsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object? context = null)
+        internal override AsyncWriter<T> CreateAsyncWriter(IAsyncWriterAdapter inner, object? context = null)
         {
             AssertCanMakeWriter();
 

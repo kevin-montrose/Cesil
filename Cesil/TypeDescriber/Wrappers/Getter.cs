@@ -56,7 +56,7 @@ namespace Cesil
                     BackingMode.Field => Field.Value.IsStatic,
                     BackingMode.Method => Method.Value.IsStatic,
                     BackingMode.Delegate => !RowType.HasValue,
-                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
                 };
             }
         }
@@ -235,7 +235,8 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             return selfExp;
@@ -256,7 +257,7 @@ namespace Cesil
                     BackingMode.Field => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Field.Value, nullHandling),
                     BackingMode.Method => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Method.Value, TakesContext, nullHandling),
                     BackingMode.Delegate => new Getter(RowType.HasValue ? RowType.Value : null, RowNullability, Returns, Delegate.Value, nullHandling),
-                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -269,7 +270,7 @@ namespace Cesil
 
             if (RowNullability == null)
             {
-                return Throw.InvalidOperationException<Getter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+                Throw.InvalidOperationException($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
             Utils.ValidateNullHandling(RowType.Value, nullHandling);
@@ -280,7 +281,7 @@ namespace Cesil
                     BackingMode.Field => new Getter(RowType.Value, nullHandling, Returns, Field.Value, ReturnsNullability),
                     BackingMode.Method => new Getter(RowType.Value, nullHandling, Returns, Method.Value, TakesContext, ReturnsNullability),
                     BackingMode.Delegate => new Getter(RowType.Value, nullHandling, Returns, Delegate.Value, ReturnsNullability),
-                    _ => Throw.ImpossibleException<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Getter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -334,7 +335,7 @@ namespace Cesil
 
             if (get == null)
             {
-                return Throw.ArgumentException<Getter>("Property does not have a getter", nameof(property));
+                Throw.ArgumentException("Property does not have a getter", nameof(property));
             }
 
             return ForMethod(get);
@@ -356,7 +357,7 @@ namespace Cesil
 
             if (method.ReturnType == Types.Void)
             {
-                return Throw.ArgumentException<Getter>($"{nameof(method)} must return a non-void value", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must return a non-void value", nameof(method));
             }
 
             var getterParams = method.GetParameters();
@@ -382,7 +383,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.WriteContext)
                         {
-                            return Throw.ArgumentException<Getter>($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in {nameof(WriteContext)}`", nameof(method));
+                            Throw.ArgumentException($"If the first parameter to a {nameof(Getter)} method is by ref, it must be an `in {nameof(WriteContext)}`", nameof(method));
                         }
 
                         rowType = null;
@@ -403,12 +404,12 @@ namespace Cesil
 
                     if (p0.IsByRef)
                     {
-                        return Throw.ArgumentException<Getter>($"If the first parameter to a static {nameof(Getter)} method with two parameters cannot be by ref", nameof(method));
+                        Throw.ArgumentException($"If the first parameter to a static {nameof(Getter)} method with two parameters cannot be by ref", nameof(method));
                     }
 
                     if (!getterParams[1].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Getter>($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"If the second parameter to a static {nameof(Getter)} method with two parameters must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     rowType = p0;
@@ -417,7 +418,8 @@ namespace Cesil
                 }
                 else
                 {
-                    return Throw.ArgumentException<Getter>($"Since {method} is a static method, it cannot take more than 2 parameters", nameof(method));
+                    Throw.ArgumentException($"Since {method} is a static method, it cannot take more than 2 parameters", nameof(method));
+                    return default;
                 }
             }
             else
@@ -433,14 +435,15 @@ namespace Cesil
                 {
                     if (!getterParams[0].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Getter>($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"If the first parameter to an instance {nameof(Getter)} method with one parameter must be `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Getter>($"Since {method} is an instance method, it cannot take 1 parameter", nameof(method));
+                    Throw.ArgumentException($"Since {method} is an instance method, it cannot take 1 parameter", nameof(method));
+                    return default;
                 }
             }
 
@@ -564,7 +567,7 @@ namespace Cesil
                     BackingMode.Field => getter.Field.Value == Field.Value,
                     BackingMode.Method => getter.Method.Value == Method.Value,
                     BackingMode.Delegate => getter.Delegate.Value == Delegate.Value,
-                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}")
+                    _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}")
                 };
         }
 
@@ -611,7 +614,8 @@ namespace Cesil
                         return $"{nameof(Getter)} backed by field {Field} returning {Returns} ({ReturnsNullability})";
                     }
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -669,7 +673,7 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret == Types.Void)
             {
-                return Throw.InvalidOperationException<Getter>($"Delegate cannot return void");
+                Throw.InvalidOperationException($"Delegate cannot return void");
             }
 
             var args = mtd.GetParameters();
@@ -681,7 +685,7 @@ namespace Cesil
 
                 if (!args[1].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's second parameter must be a `in {nameof(WriteContext)}`; {msg}");
+                    Throw.InvalidOperationException($"Delegate's second parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var getterDel = Types.GetterDelegate.MakeGenericType(takes, ret);
@@ -695,7 +699,7 @@ namespace Cesil
             {
                 if (!args[0].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Getter>($"Delegate's first parameter must be a `in {nameof(WriteContext)}`; {msg}");
+                    Throw.InvalidOperationException($"Delegate's first parameter must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var getterDel = Types.StaticGetterDelegate.MakeGenericType(ret);
@@ -707,7 +711,8 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Getter>("Delegate must take 1 or 2 parameters");
+                Throw.InvalidOperationException("Delegate must take 1 or 2 parameters");
+                return default;
             }
         }
 

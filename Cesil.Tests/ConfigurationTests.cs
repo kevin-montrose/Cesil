@@ -224,10 +224,10 @@ namespace Cesil.Tests
                     .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
                     .ToOptions();
 
-            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, MemoryPool<char>.Shared, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, MemoryPool<char>.Shared, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, MemoryPool<char>.Shared, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, MemoryPool<char>.Shared, out var maxSize4))
+            var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1);
+            var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2);
+            var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3);
+            var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4);
             {
                 for (var x = 0; x <= char.MaxValue; x++)
                 {

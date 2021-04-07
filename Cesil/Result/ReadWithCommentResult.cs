@@ -40,7 +40,7 @@
             {
                 if (ResultType != ReadWithCommentResultType.HasValue)
                 {
-                    return Throw.InvalidOperationException<TRow>($"{nameof(ReadWithCommentResult<TRow>)} has no value");
+                    Throw.InvalidOperationException($"{nameof(ReadWithCommentResult<TRow>)} has no value");
                 }
 
                 return _Value;
@@ -60,7 +60,7 @@
             {
                 if (ResultType != ReadWithCommentResultType.HasComment)
                 {
-                    return Throw.InvalidOperationException<string>($"{nameof(ReadWithCommentResult<TRow>)} has no comment");
+                    Throw.InvalidOperationException($"{nameof(ReadWithCommentResult<TRow>)} has no comment");
                 }
 
                 return Utils.NonNull(_Comment);
@@ -103,7 +103,7 @@
             ReadWithCommentResultType.NoValue => $"{nameof(ReadWithCommentResult<TRow>)} which is empty)",
             ReadWithCommentResultType.HasValue => $"{nameof(ReadWithCommentResult<TRow>)} with {Value}",
             ReadWithCommentResultType.HasComment => $"{nameof(ReadWithCommentResult<TRow>)} with comment: {Comment}",
-            _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}")
+            _ => Throw.InvalidOperationException_Returns<string>($"Unexpected {nameof(ReadWithCommentResultType)}: {ResultType}")
         };
     }
 }

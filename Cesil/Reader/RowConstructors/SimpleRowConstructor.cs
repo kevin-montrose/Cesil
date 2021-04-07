@@ -210,8 +210,7 @@ namespace Cesil
 
                         if (!found)
                         {
-                            Throw.SerializationException<object>($"Required column [{setter.Name}] was not found in header row");
-                            return;
+                            Throw.SerializationException($"Required column [{setter.Name}] was not found in header row");
                         }
                     }
                 }
@@ -228,7 +227,7 @@ namespace Cesil
             }
             else if (!InstanceProvider(in ctx, out prealloced))
             {
-                return Throw.InvalidOperationException<bool>($"Failed to obtain instance of {typeof(TRow).Name}");
+                Throw.InvalidOperationException($"Failed to obtain instance of {typeof(TRow).Name}");
             }
 
             Current = prealloced;
@@ -240,7 +239,7 @@ namespace Cesil
         {
             if (!CurrentPopulated)
             {
-                Throw.ImpossibleException<object>("Row should already be pre-allocated");
+                Throw.ImpossibleException("Row should already be pre-allocated");
             }
 
             _RowStarted = true;
@@ -271,8 +270,7 @@ namespace Cesil
         {
             if (!CurrentPopulated || !RowStarted)
             {
-                Throw.ImpossibleException<object>($"No current row available, shouldn't be trying to read a column");
-                return;
+                Throw.ImpossibleException($"No current row available, shouldn't be trying to read a column");
             }
 
             LookupColumn(columnNumber, out var setterNumber);
@@ -286,8 +284,7 @@ namespace Cesil
 
                 if (config.Required == MemberRequired.Yes && data.Length == 0)
                 {
-                    Throw.SerializationException<object>($"Column [{ctx.Column}] is required, but was not found in row");
-                    return;
+                    Throw.SerializationException($"Column [{ctx.Column}] is required, but was not found in row");
                 }
 
                 var setter = config.Setter;
@@ -303,7 +300,7 @@ namespace Cesil
         {
             if (!CurrentPopulated)
             {
-                return Throw.ImpossibleException<TRow>("No current row available, shouldn't be trying to finish a row");
+                Throw.ImpossibleException("No current row available, shouldn't be trying to finish a row");
             }
 
             if (!RequiredTracker.CheckRequiredAndClear(out var missingIx))
@@ -313,10 +310,10 @@ namespace Cesil
                 {
                     var details = Setters[setterIx.Value];
 
-                    return Throw.SerializationException<TRow>($"Column [{details.Name}] is required, but was not found in row");
+                    Throw.SerializationException($"Column [{details.Name}] is required, but was not found in row");
                 }
 
-                return Throw.ImpossibleException<TRow>($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
+                Throw.ImpossibleException($"Column in position {missingIx} was required and missing, but couldn't find a member to match it to.  This shouldn't happen.");
             }
 
             var ret = Current;

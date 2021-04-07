@@ -6,15 +6,15 @@ Remove-Item -Path '.\TestCoverageResults\*' -Recurse -Force
 
 Write-Output 'This folder is here to receive code coverage results.  Ignore this file.' > .\TestCoverageResults\README.txt
 
-Start-Process -Wait -NoNewWindow -FilePath 'dotnet' -ArgumentList 'test','/p:CollectCoverage=true','/p:CoverletOutputFormat=opencover','/p:CoverletOutput=.\..\TestCoverageResults\Coverage.xml','/p:SingleHit=true'
+Write-Output 'Running Code Coverage'
 
-Write-Output 'Coverage complete'
+dotnet test --collect "XPlat Code Coverage" -r .\TestCoverageResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.SingleHit=true DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.DoesNotReturnAttribute=DoesNotReturnAttribute
 
-Start-Process -Wait -NoNewWindow -FilePath 'dotnet' -ArgumentList '.\ReportGenerator\ReportGenerator.dll','-reports:.\TestCoverageResults\Coverage.xml','-targetdir:.\TestCoverageResults\'
+$CoverageFile = Get-ChildItem -Path ".\TestCoverageResults\" -r -Filter *.xml
 
-if ($process.ExitCode -gt 0) {
-	return
-}
+Write-Output 'Coverage Complete, output: ' + $CoverageFile.FullName
+
+dotnet .\ReportGenerator\ReportGenerator.dll -reports:$CoverageFile.FullName -targetdir:.\TestCoverageResults\
 
 Write-Output 'Report generated'
 

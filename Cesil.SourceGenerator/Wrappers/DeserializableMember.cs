@@ -31,6 +31,7 @@ namespace Cesil.SourceGenerator
 
         internal static (DeserializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForMethod(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol deserializingType,
             IMethodSymbol mtd,
@@ -41,7 +42,7 @@ namespace Cesil.SourceGenerator
 
             var mtdLoc = mtd.Locations.FirstOrDefault();
 
-            var attrName = Utils.GetNameFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, mtdLoc, attrs, ref diags);
             if (attrName == null)
             {
                 var diag = Diagnostics.DeserializableMemberMustHaveNameSetForMethod(mtdLoc, mtd);
@@ -52,13 +53,13 @@ namespace Cesil.SourceGenerator
 
             var setter = GetSetterForMethod(compilation, types, deserializingType, mtd, mtdLoc, ref diags);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, mtdLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, mtdLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
 
             var isRequired = false;
-            var attrIsRequiredValue = GetMemberRequiredFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            var attrIsRequiredValue = GetMemberRequiredFromAttributes(attrMembers, mtdLoc, attrs, ref diags);
             isRequired = attrIsRequiredValue ?? isRequired;
 
-            var reset = GetReset(compilation, types, deserializingType, mtdLoc, attrs, ref diags);
+            var reset = GetReset(compilation, attrMembers, types, deserializingType, mtdLoc, attrs, ref diags);
 
             // after this point, we need to know what we're working with
             if (setter == null)
@@ -66,13 +67,14 @@ namespace Cesil.SourceGenerator
                 return (null, diags);
             }
 
-            var parser = GetParser(compilation, types, setter.ValueType, mtdLoc, attrs, ref diags);
+            var parser = GetParser(compilation, attrMembers, types, setter.ValueType, mtdLoc, attrs, ref diags);
 
             return MakeMember(mtdLoc, types, attrName, setter, parser, reset, isRequired, order, diags);
         }
 
         internal static (DeserializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForProperty(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol deserializingType,
             IPropertySymbol prop,
@@ -95,25 +97,29 @@ namespace Cesil.SourceGenerator
                 diags = diags.Add(diag);
             }
 
-            var attrName = Utils.GetNameFromAttributes(compilation, propLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, propLoc, attrs, ref diags);
             var name = attrName ?? prop.Name;
             var setter = new Setter(prop);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, propLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, propLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
 
             var isRequired = false;
-            var attrIsRequiredValue = GetMemberRequiredFromAttributes(compilation, propLoc, attrs, ref diags);
+            var attrIsRequiredValue = GetMemberRequiredFromAttributes(attrMembers, propLoc, attrs, ref diags);
             isRequired = attrIsRequiredValue ?? isRequired;
 
-            var reset = GetReset(compilation, types, deserializingType, propLoc, attrs, ref diags);
+            var reset = GetReset(compilation, attrMembers, types, deserializingType, propLoc, attrs, ref diags);
 
-            var parser = GetParser(compilation, types, setter.ValueType, propLoc, attrs, ref diags);
+            var parser = GetParser(compilation, attrMembers, types, setter.ValueType, propLoc, attrs, ref diags);
+
+            // only do this for properties
+            reset ??= InferDefaultReset(attrMembers, types, deserializingType, prop.Name, attrs, propLoc, ref diags);
 
             return MakeMember(propLoc, types, name, setter, parser, reset, isRequired, order, diags);
         }
 
         internal static (DeserializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForField(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol deserializingType,
             IFieldSymbol field,
@@ -124,25 +130,26 @@ namespace Cesil.SourceGenerator
 
             var fieldLoc = field.Locations.FirstOrDefault();
 
-            var attrName = Utils.GetNameFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, fieldLoc, attrs, ref diags);
             var name = attrName ?? field.Name;
             var setter = new Setter(field);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, fieldLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, fieldLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
 
             var isRequired = false;
-            var attrIsRequiredValue = GetMemberRequiredFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            var attrIsRequiredValue = GetMemberRequiredFromAttributes(attrMembers, fieldLoc, attrs, ref diags);
             isRequired = attrIsRequiredValue ?? isRequired;
 
-            var reset = GetReset(compilation, types, deserializingType, fieldLoc, attrs, ref diags);
+            var reset = GetReset(compilation, attrMembers, types, deserializingType, fieldLoc, attrs, ref diags);
 
-            var parser = GetParser(compilation, types, setter.ValueType, fieldLoc, attrs, ref diags);
+            var parser = GetParser(compilation, attrMembers, types, setter.ValueType, fieldLoc, attrs, ref diags);
 
             return MakeMember(fieldLoc, types, name, setter, parser, reset, isRequired, order, diags);
         }
 
         internal static (DeserializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForConstructorParameter(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol deserializingType,
             IParameterSymbol parameter,
@@ -153,15 +160,15 @@ namespace Cesil.SourceGenerator
 
             var parameterLoc = parameter.Locations.FirstOrDefault();
 
-            var attrName = Utils.GetNameFromAttributes(compilation, parameterLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, parameterLoc, attrs, ref diags);
             var name = attrName ?? parameter.Name;
             var setter = new Setter(parameter);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, parameterLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, parameterLoc, types.Framework, types.OurTypes.DeserializerMemberAttribute, attrs, ref diags);
 
-            // note that 
+            // note that this defaults to TRUE
             var isRequired = true;
-            var attrIsRequiredValue = GetMemberRequiredFromAttributes(compilation, parameterLoc, attrs, ref diags);
+            var attrIsRequiredValue = GetMemberRequiredFromAttributes(attrMembers, parameterLoc, attrs, ref diags);
             isRequired = attrIsRequiredValue ?? isRequired;
 
             if (!isRequired)
@@ -173,7 +180,7 @@ namespace Cesil.SourceGenerator
                 return (null, diags);
             }
 
-            var reset = GetReset(compilation, types, deserializingType, parameterLoc, attrs, ref diags);
+            var reset = GetReset(compilation, attrMembers, types, deserializingType, parameterLoc, attrs, ref diags);
             if (reset != null && !reset.IsStatic)
             {
                 var diag = Diagnostics.BadReset_MustBeStaticForParameters(parameterLoc, deserializingType, parameter, reset.Method);
@@ -181,7 +188,7 @@ namespace Cesil.SourceGenerator
                 return (null, diags);
             }
 
-            var parser = GetParser(compilation, types, setter.ValueType, parameterLoc, attrs, ref diags);
+            var parser = GetParser(compilation, attrMembers, types, setter.ValueType, parameterLoc, attrs, ref diags);
 
             return MakeMember(parameterLoc, types, name, setter, parser, reset, isRequired, order, diags);
         }
@@ -317,7 +324,7 @@ namespace Cesil.SourceGenerator
 
                         var p0RefKind = p0.RefKind;
 
-                        if (!(p0RefKind == RefKind.None || p0RefKind == RefKind.Ref))
+                        if (!p0RefKind.IsNormalOrByRef())
                         {
                             var diag = Diagnostics.BadSetterParameters_StaticTwo(location, method, rowType);
                             diags = diags.Add(diag);
@@ -344,7 +351,7 @@ namespace Cesil.SourceGenerator
                     // take 3 parameters, the row type (which may be passed by ref), the result of the parser, and `in ReadContext`
 
                     var p0 = ps[0];
-                    if (!(p0.RefKind == RefKind.None || p0.RefKind == RefKind.Ref))
+                    if (!p0.RefKind.IsNormalOrByRef())
                     {
                         var diag = Diagnostics.BadSetterParameters_StaticThree(location, method, rowType);
                         diags = diags.Add(diag);
@@ -460,10 +467,15 @@ namespace Cesil.SourceGenerator
             return new Setter(method, takesValue, takesRow, takesRowByRef, takesContext);
         }
 
-        private static bool? GetMemberRequiredFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
+        private static bool? GetMemberRequiredFromAttributes(
+            AttributedMembers attrMembers,
+            Location? location, 
+            ImmutableArray<AttributeSyntax> attrs, 
+            ref ImmutableArray<Diagnostic> diags
+        )
         {
-            var requiredByte = Utils.GetConstantsWithName<byte>(compilation, attrs, "MemberRequired", ref diags);
-            var requiredBool = Utils.GetConstantsWithName<bool>(compilation, attrs, "IsRequired", ref diags);
+            var requiredByte = Utils.GetConstantsWithName<byte>(attrMembers, attrs, "MemberRequired", ref diags);
+            var requiredBool = Utils.GetConstantsWithName<bool>(attrMembers, attrs, "IsRequired", ref diags);
 
             var total = requiredByte.Length + requiredBool.Length;
 
@@ -484,13 +496,23 @@ namespace Cesil.SourceGenerator
             {
                 var byteVal = requiredByte.Single();
 
-                return
+                var logicalVal =
                     byteVal switch
                     {
                         1 => true,
                         2 => false,
-                        _ => null
+                        _ => default(bool?)
                     };
+
+                if (logicalVal == null)
+                {
+                    var diag = Diagnostics.UnexpectedConstantValue(location, byteVal.ToString(), new[] { "Yes", "No" });
+                    diags = diags.Add(diag);
+
+                    return null;
+                }
+
+                return logicalVal;
             }
 
             var boolVal = requiredBool.Single();
@@ -499,6 +521,7 @@ namespace Cesil.SourceGenerator
 
         private static Reset? GetReset(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             INamedTypeSymbol rowType,
             Location? location,
@@ -506,8 +529,9 @@ namespace Cesil.SourceGenerator
             ref ImmutableArray<Diagnostic> diags
         )
         {
-            var reset = Utils.GetMethodFromAttribute(
-                    compilation,
+            var reset = 
+                Utils.GetMethodFromAttribute(
+                    attrMembers,
                     "ResetType",
                     Diagnostics.ResetTypeSpecifiedMultipleTimes,
                     "ResetMethodName",
@@ -548,10 +572,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            var accessible =
-                resetMtd.DeclaredAccessibility == Accessibility.Public ||
-                (compilation.Assembly.Equals(resetMtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                 resetMtd.DeclaredAccessibility == Accessibility.Internal);
+            var accessible = resetMtd.IsAccessible(attrMembers);
 
             if (!accessible)
             {
@@ -634,7 +655,7 @@ namespace Cesil.SourceGenerator
                     // two parameters, the first of the row type (which may be by ref) and the second of `in ReadContext`
 
                     var p0 = ps[0];
-                    if (!(p0.RefKind == RefKind.None || p0.RefKind == RefKind.Ref))
+                    if (!p0.RefKind.IsNormalOrByRef())
                     {
                         var diag = Diagnostics.BadResetParameters_StaticTwo(location, resetMtd, rowType);
                         diags = diags.Add(diag);
@@ -724,8 +745,86 @@ namespace Cesil.SourceGenerator
             return new Reset(resetMtd, isStatic, takesRow, takesRowByRef, takesContext);
         }
 
+        internal static Reset? InferDefaultReset(
+            AttributedMembers attrMembers,
+            DeserializerTypes types,
+            ITypeSymbol declaringType,
+            string propertyName,
+            ImmutableArray<AttributeSyntax> attrs,
+            Location? location,
+            ref ImmutableArray<Diagnostic> diags
+        )
+        {
+            var ignoredDiags = ImmutableArray<Diagnostic>.Empty;
+            var resetType = Utils.GetTypeConstantWithName(attrMembers, attrs, "ResetType", ref ignoredDiags);
+            var resetMethod = Utils.GetConstantsWithName<string>(attrMembers, attrs, "ResetMethodName", ref ignoredDiags);
+
+            // if anything _tried_ to set a non-default, don't include any defaults
+            if (!resetType.IsEmpty || !resetMethod.IsEmpty)
+            {
+                return null;
+            }
+
+            foreach (var candidate in declaringType.GetMembers("Reset" + propertyName))
+            {
+                var mtd = candidate as IMethodSymbol;
+                if (mtd == null)
+                {
+                    continue;
+                }
+
+                if (mtd.ReturnType.SpecialType != SpecialType.System_Void)
+                {
+                    continue;
+                }
+
+                bool isStatic, takesContext;
+                var ps = mtd.Parameters;
+
+                if (mtd.IsStatic)
+                {
+                    isStatic = true;
+
+                    if (ps.Length == 0)
+                    {
+                        takesContext = false;
+                    }
+                    else if (ps.Length == 1)
+                    {
+                        takesContext = ps[0].IsInReadContext(types.OurTypes);
+
+                        if (!takesContext && !ps[0].Equals(declaringType, SymbolEqualityComparer.Default))
+                        {
+                            var diag = Diagnostics.BadResetParameters_StaticOne(location, mtd, ps[0].Type);
+                            diags = diags.Add(diag);
+                            return null;
+                        }
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    isStatic = false;
+                    takesContext = false;
+
+                    if (ps.Length != 0)
+                    {
+                        continue;
+                    }
+                }
+
+                return new Reset(mtd, isStatic, false, false, takesContext);
+            }
+
+            return null;
+        }
+
         private static Parser? GetParser(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             ITypeSymbol toParseType,
             Location? location,
@@ -733,8 +832,9 @@ namespace Cesil.SourceGenerator
             ref ImmutableArray<Diagnostic> diags
         )
         {
-            var parser = Utils.GetMethodFromAttribute(
-                    compilation,
+            var parser = 
+                Utils.GetMethodFromAttribute(
+                    attrMembers,
                     "ParserType",
                     Diagnostics.ParserTypeSpecifiedMultipleTimes,
                     "ParserMethodName",
@@ -775,10 +875,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            var accessible =
-                parserMtd.DeclaredAccessibility == Accessibility.Public ||
-                (compilation.Assembly.Equals(parserMtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                 parserMtd.DeclaredAccessibility == Accessibility.Internal);
+            var accessible = parserMtd.IsAccessible(attrMembers);
 
             if (!accessible)
             {

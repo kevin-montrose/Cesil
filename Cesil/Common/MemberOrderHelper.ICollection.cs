@@ -9,10 +9,10 @@ namespace Cesil
         bool ICollection<T>.IsReadOnly => true;
 
         void ICollection<T>.Add(T item)
-        => Throw.NotSupportedException<object>(nameof(MemberOrderHelper<T>), nameof(Add));
+        => Throw.NotSupportedException(nameof(MemberOrderHelper<T>), nameof(Add));
 
         void ICollection<T>.Clear()
-        => Throw.NotSupportedException<object>(nameof(MemberOrderHelper<T>), nameof(ICollection<T>.Clear));
+        => Throw.NotSupportedException(nameof(MemberOrderHelper<T>), nameof(ICollection<T>.Clear));
 
         bool ICollection<T>.Contains(T item)
         => Data.Contains(item);
@@ -20,15 +20,15 @@ namespace Cesil
         void ICollection<T>.CopyTo(T[] array, int arrayIndex)
         {
             Utils.CheckArgumentNull(array, nameof(array));
+            
             if (arrayIndex < 0)
             {
-                Throw.ArgumentOutOfRangeException<object>(nameof(arrayIndex), arrayIndex, 0, array.Length);
-                return;
+                Throw.ArgumentOutOfRangeException(nameof(arrayIndex), arrayIndex, 0, array.Length);
             }
+
             if (arrayIndex + Data.Count > array.Length)
             {
-                Throw.ArgumentException<object>(nameof(arrayIndex), $"Collection contains {Data.Count} elements, which will not fit in array of Length {array.Length} starting at index {arrayIndex}");
-                return;
+                Throw.ArgumentException(nameof(arrayIndex), $"Collection contains {Data.Count} elements, which will not fit in array of Length {array.Length} starting at index {arrayIndex}");
             }
 
             // not looking to optimize this, because we don't really care about
@@ -40,6 +40,9 @@ namespace Cesil
         }
 
         bool ICollection<T>.Remove(T item)
-        => Throw.NotSupportedException<bool>(nameof(MemberOrderHelper<T>), nameof(ICollection<T>.Remove));
+        {
+            Throw.NotSupportedException(nameof(MemberOrderHelper<T>), nameof(ICollection<T>.Remove));
+            return default;
+        }
     }
 }

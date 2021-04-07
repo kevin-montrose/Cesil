@@ -116,7 +116,7 @@ namespace Cesil
                     var actualWidth = Count;
                     if (index >= actualWidth)
                     {
-                        return Throw.ArgumentOutOfRangeException<ColumnIdentifier>(nameof(index), index, actualWidth);
+                        Throw.ArgumentOutOfRangeException(nameof(index), index, actualWidth);
                     }
 
                     var actualIx = index;
@@ -175,7 +175,7 @@ namespace Cesil
 
         internal int RowNumber;
 
-        private bool HasNames;
+        internal bool HasNames;
         private string[] Names;
         private int NamesIndexOffset;
         private NameLookup NameLookup;
@@ -251,12 +251,12 @@ namespace Cesil
         {
             if (!IsDisposed)
             {
-                Throw.InvalidOperationException<object>($"{nameof(DynamicRow)} not in an uninitialized state");
+                Throw.InvalidOperationException($"{nameof(DynamicRow)} not in an uninitialized state");
             }
 
             if (OutstandingUsesOfData != 0)
             {
-                Throw.InvalidOperationException<object>($"{nameof(DynamicRow)} data is not in an uninitialized state");
+                Throw.InvalidOperationException($"{nameof(DynamicRow)} data is not in an uninitialized state");
             }
 
             HasOwner = true;
@@ -397,7 +397,7 @@ checkSize:
 
             if (!TryGetIndex(index, out var ret, dependsOn, offset, length))
             {
-                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, length ?? Width);
+                Throw.ArgumentOutOfRangeException(nameof(index), index, length ?? Width);
             }
 
             return ret;
@@ -419,7 +419,7 @@ checkSize:
 
             if (!TryGetIndex(actualIndex, out var ret, dependsOn, offset, length))
             {
-                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index, actualIndex, Width);
+                Throw.ArgumentOutOfRangeException(nameof(index), index, actualIndex, Width);
             }
 
             return ret;
@@ -447,7 +447,8 @@ checkSize:
                     return res;
                 }
 
-                return Throw.KeyNotFoundException<object>(index.Name);
+                Throw.KeyNotFoundException(index.Name);
+                return default;
             }
             else
             {
@@ -456,7 +457,8 @@ checkSize:
                     return res;
                 }
 
-                return Throw.ArgumentOutOfRangeException<object>(nameof(index), index.Index, length ?? Width);
+                Throw.ArgumentOutOfRangeException(nameof(index), index.Index, length ?? Width);
+                return default;
             }
         }
 
@@ -466,7 +468,7 @@ checkSize:
 
             if (!TryGetValue(column, out var ret, dependsOn, offset, length))
             {
-                return Throw.KeyNotFoundException<object>(column);
+                Throw.KeyNotFoundException(column);
             }
 
             return ret;
@@ -519,12 +521,12 @@ checkSize:
 
             if (rawStart < actualStart || rawStart > actualEnd || rawEnd < actualStart || rawEnd > actualEnd)
             {
-                return Throw.ArgumentOutOfRangeException<DynamicRowRange>(nameof(range), range, actualStart, actualEnd, actualWidth);
+                Throw.ArgumentOutOfRangeException(nameof(range), range, actualStart, actualEnd, actualWidth);
             }
 
             if (rawStart > rawEnd)
             {
-                return Throw.ArgumentException<DynamicRowRange>($"Start of range ({rawStart}) greater than end of range ({rawEnd}) in {range}", nameof(range));
+                Throw.ArgumentException($"Start of range ({rawStart}) greater than end of range ({rawEnd}) in {range}", nameof(range));
             }
 
             var width = rawEnd - rawStart;
@@ -572,7 +574,7 @@ checkSize:
             return true;
         }
 
-        private bool TryGetValue(string lookingFor, out object? result, ITestableDisposable dependsOn, int? offset, int? length)
+        internal bool TryGetValue(string lookingFor, out object? result, ITestableDisposable dependsOn, int? offset, int? length)
         {
             if (HasNames)
             {
@@ -744,7 +746,7 @@ checkSize:
         {
             if (gen != Generation)
             {
-                Throw.InvalidOperationException<object>($"Underlying {nameof(DynamicRow)} modified during enumeration, generation mismatch");
+                Throw.InvalidOperationException($"Underlying {nameof(DynamicRow)} modified during enumeration, generation mismatch");
             }
         }
 

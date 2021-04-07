@@ -27,8 +27,7 @@ namespace Cesil
             var row = SafeRowGet();
             if (!row.TryGetDataSpan(ColumnNumber, out var ret))
             {
-                Throw.InvalidOperationException<object>($"{nameof(DynamicCell)} unexpectedly backed by null span");
-                return default;
+                Throw.InvalidOperationException($"{nameof(DynamicCell)} unexpectedly backed by null span");
             }
 
             return ret;
@@ -53,8 +52,7 @@ namespace Cesil
             {
                 data = default;
                 ctx = default;
-                Throw.InvalidOperationException<object>($"{nameof(DynamicCell)} unexpectedly backed by null span");
-                return;
+                Throw.InvalidOperationException($"{nameof(DynamicCell)} unexpectedly backed by null span");
             }
 
             var name = r.Columns[ColumnNumber];
@@ -216,7 +214,7 @@ namespace Cesil
 
             if (provider != null)
             {
-                return Throw.ArgumentException<T>($"Conversions via {nameof(IConvertible)} cannot specify an {nameof(IFormatProvider)}, more fine grained control of conversions should be done via explicit casts and {nameof(ITypeDescriber)}.{nameof(ITypeDescriber.GetDynamicCellParserFor)}.", nameof(provider));
+                Throw.ArgumentException($"Conversions via {nameof(IConvertible)} cannot specify an {nameof(IFormatProvider)}, more fine grained control of conversions should be done via explicit casts and {nameof(ITypeDescriber)}.{nameof(ITypeDescriber.GetDynamicCellParserFor)}.", nameof(provider));
             }
 
             GetConversionDetails(out var describer, out var data, out var ctx);
@@ -224,13 +222,13 @@ namespace Cesil
             var conf = describer.GetDynamicCellParserFor(in ctx, toType);
             if (conf == null)
             {
-                return Throw.InvalidOperationException<T>($"{nameof(Parser)} returned from {nameof(ITypeDescriber.GetDynamicCellParserFor)} for {toType} was null, cannot convert");
+                Throw.InvalidOperationException($"{nameof(Parser)} returned from {nameof(ITypeDescriber.GetDynamicCellParserFor)} for {toType} was null, cannot convert");
             }
 
             var del = MakeFromParser<T>(toType, conf);
             if (!del(data, in ctx, out var ret))
             {
-                return Throw.InvalidOperationException<T>($"{nameof(Parser)} for {toType} returned false, cannot convert");
+                Throw.InvalidOperationException($"{nameof(Parser)} for {toType} returned false, cannot convert");
             }
 
             return ret;

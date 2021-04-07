@@ -7,22 +7,22 @@ namespace Cesil
     {
         internal DynamicBoundConfiguration(Options options) : base(options) { }
 
-        internal override IAsyncWriter<dynamic> CreateAsyncWriter(IAsyncWriterAdapter writer, object? context = null)
+        internal override AsyncDynamicWriter CreateAsyncWriter(IAsyncWriterAdapter writer, object? context = null)
         {
             return new AsyncDynamicWriter(this, writer, context);
         }
 
-        internal override IReader<dynamic> CreateReader(IReaderAdapter reader, object? context = null)
+        internal override DynamicReader CreateReader(IReaderAdapter reader, object? context = null)
         {
             return new DynamicReader(reader, this, context);
         }
 
-        internal override IAsyncReader<dynamic> CreateAsyncReader(IAsyncReaderAdapter reader, object? context = null)
+        internal override AsyncDynamicReader CreateAsyncReader(IAsyncReaderAdapter reader, object? context = null)
         {
             return new AsyncDynamicReader(reader, this, context);
         }
 
-        internal override IWriter<dynamic> CreateWriter(IWriterAdapter writer, object? context = null)
+        internal override DynamicWriter CreateWriter(IWriterAdapter writer, object? context = null)
         {
             return new DynamicWriter(this, writer, context);
         }

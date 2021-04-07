@@ -30,6 +30,7 @@ namespace Cesil.SourceGenerator
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForMethod(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
             INamedTypeSymbol serializingType,
             IMethodSymbol mtd,
@@ -40,7 +41,7 @@ namespace Cesil.SourceGenerator
 
             var mtdLoc = mtd.Locations.FirstOrDefault();
 
-            var attrName = Utils.GetNameFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, mtdLoc, attrs, ref diags);
             if (attrName == null)
             {
                 var diag = Diagnostics.SerializableMemberMustHaveNameSetForMethod(mtdLoc, mtd);
@@ -51,13 +52,13 @@ namespace Cesil.SourceGenerator
 
             var getter = GetGetterForMethod(compilation, types, serializingType, mtd, mtdLoc, ref diags);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, mtdLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, mtdLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
-            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, mtdLoc, attrs, ref diags);
+            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(attrMembers, mtdLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, mtdLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, attrMembers, types, serializingType, mtdLoc, attrs, ref diags);
 
             // after this point, we need to know what we're working with
             if (getter == null)
@@ -65,13 +66,14 @@ namespace Cesil.SourceGenerator
                 return (null, diags);
             }
 
-            var formatter = GetFormatter(compilation, types, getter.ForType, mtdLoc, attrs, ref diags);
+            var formatter = GetFormatter(compilation, attrMembers, types, getter.ForType, mtdLoc, attrs, ref diags);
 
             return MakeMember(mtdLoc, types, attrName, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
         }
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForField(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
             INamedTypeSymbol serializingType,
             IFieldSymbol field,
@@ -83,25 +85,26 @@ namespace Cesil.SourceGenerator
             var fieldLoc = field.Locations.FirstOrDefault();
 
             var name = field.Name;
-            var attrName = Utils.GetNameFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, fieldLoc, attrs, ref diags);
             name = attrName ?? name;
 
             var getter = new Getter(field);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, fieldLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, fieldLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
-            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, fieldLoc, attrs, ref diags);
+            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(attrMembers, fieldLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = GetFormatter(compilation, types, field.Type, fieldLoc, attrs, ref diags);
-            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, fieldLoc, attrs, ref diags);
+            var formatter = GetFormatter(compilation, attrMembers, types, field.Type, fieldLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, attrMembers, types, serializingType, fieldLoc, attrs, ref diags);
 
             return MakeMember(fieldLoc, types, name, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
         }
 
         internal static (SerializableMember? Member, ImmutableArray<Diagnostic> Diagnostics) ForProperty(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
             INamedTypeSymbol serializingType,
             IPropertySymbol prop,
@@ -125,19 +128,22 @@ namespace Cesil.SourceGenerator
             }
 
             var name = prop.Name;
-            var attrName = Utils.GetNameFromAttributes(compilation, propLoc, attrs, ref diags);
+            var attrName = Utils.GetNameFromAttributes(attrMembers, propLoc, attrs, ref diags);
             name = attrName ?? name;
 
             var getter = new Getter(prop);
 
-            int? order = Utils.GetOrderFromAttributes(compilation, propLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
+            int? order = Utils.GetOrderFromAttributes(attrMembers, propLoc, types.Framework, types.OurTypes.SerializerMemberAttribute, attrs, ref diags);
 
             var emitDefaultValue = true;
-            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(compilation, propLoc, attrs, ref diags);
+            var attrEmitDefaultValue = GetEmitDefaultValueFromAttributes(attrMembers, propLoc, attrs, ref diags);
             emitDefaultValue = attrEmitDefaultValue ?? emitDefaultValue;
 
-            var formatter = GetFormatter(compilation, types, prop.Type, propLoc, attrs, ref diags);
-            var shouldSerialize = GetShouldSerialize(compilation, types, serializingType, propLoc, attrs, ref diags);
+            var formatter = GetFormatter(compilation, attrMembers, types, prop.Type, propLoc, attrs, ref diags);
+            var shouldSerialize = GetShouldSerialize(compilation, attrMembers, types, serializingType, propLoc, attrs, ref diags);
+
+            // only do this for properties
+            shouldSerialize ??= InferDefaultShouldSerialize(attrMembers, types, serializingType, prop.Name, attrs, propLoc, ref diags);
 
             return MakeMember(propLoc, types, name, getter, formatter, shouldSerialize, emitDefaultValue, order, diags);
         }
@@ -173,15 +179,17 @@ namespace Cesil.SourceGenerator
 
         private static ShouldSerialize? GetShouldSerialize(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
-            INamedTypeSymbol declaringType,
+            INamedTypeSymbol rowType,
             Location? location,
             ImmutableArray<AttributeSyntax> attrs,
             ref ImmutableArray<Diagnostic> diags
         )
         {
-            var shouldSerialize = Utils.GetMethodFromAttribute(
-                    compilation,
+            var shouldSerialize =
+                Utils.GetMethodFromAttribute(
+                    attrMembers,
                     "ShouldSerializeType",
                     Diagnostics.ShouldSerializeTypeSpecifiedMultipleTimes,
                     "ShouldSerializeMethodName",
@@ -214,10 +222,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            var accessible =
-                shouldSerializeMtd.DeclaredAccessibility == Accessibility.Public ||
-                (compilation.Assembly.Equals(shouldSerializeMtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                 shouldSerializeMtd.DeclaredAccessibility == Accessibility.Internal);
+            var accessible = shouldSerializeMtd.IsAccessible(attrMembers);
 
             if (!accessible)
             {
@@ -244,9 +249,10 @@ namespace Cesil.SourceGenerator
             {
                 // can legally take
                 // 1. no parameters
-                // 2. one parameter of a type which declares the annotated member
-                // 3. two parameters
-                //    1. the type which declares the annotated member, or one which can be assigned to it
+                // 2. one parameter, a type which declares the annotated member
+                // 3. one parameter, in WriteContext
+                // 4. two parameters
+                //    1. the type which declares the annotated member, or one which can be assigned to it, and
                 //    2. in WriteContext
 
                 if (shouldSerializeParams.Length == 0)
@@ -258,23 +264,32 @@ namespace Cesil.SourceGenerator
                 else if (shouldSerializeParams.Length == 1)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if (!p0.IsNormalParameterOfType(compilation, declaringType))
+
+                    if (p0.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostics.BadShouldSerializeParameters_StaticOne(location, shouldSerializeMtd, declaringType);
-                        diags = diags.Add(diag);
-
-                        return null;
+                        takesRow = false;
+                        takesContext = true;
                     }
+                    else
+                    {
+                        if (!p0.IsNormalParameterOfType(compilation, rowType))
+                        {
+                            var diag = Diagnostics.BadShouldSerializeParameters_StaticOne(location, shouldSerializeMtd, rowType);
+                            diags = diags.Add(diag);
 
-                    takesRow = true;
-                    takesContext = false;
+                            return null;
+                        }
+
+                        takesRow = true;
+                        takesContext = false;
+                    }
                 }
                 else if (shouldSerializeParams.Length == 2)
                 {
                     var p0 = shouldSerializeParams[0];
-                    if (!p0.IsNormalParameterOfType(compilation, declaringType))
+                    if (!p0.IsNormalParameterOfType(compilation, rowType))
                     {
-                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, declaringType);
+                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, rowType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -283,7 +298,7 @@ namespace Cesil.SourceGenerator
                     var p1 = shouldSerializeParams[1];
                     if (!p1.IsInWriteContext(types.OurTypes))
                     {
-                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, declaringType);
+                        var diag = Diagnostics.BadShouldSerializeParameters_StaticTwo(location, shouldSerializeMtd, rowType);
                         diags = diags.Add(diag);
 
                         return null;
@@ -308,9 +323,9 @@ namespace Cesil.SourceGenerator
 
                 var onType = shouldSerializeMtd.ContainingType;
 
-                if (!onType.Equals(declaringType, SymbolEqualityComparer.Default))
+                if (!onType.Equals(rowType, SymbolEqualityComparer.Default))
                 {
-                    var diag = Diagnostics.ShouldSerializeInstanceOnWrongType(location, shouldSerializeMtd, declaringType);
+                    var diag = Diagnostics.ShouldSerializeInstanceOnWrongType(location, shouldSerializeMtd, rowType);
                     diags = diags.Add(diag);
 
                     return null;
@@ -347,6 +362,83 @@ namespace Cesil.SourceGenerator
             return new ShouldSerialize(shouldSerializeMtd, isStatic, takesRow, takesContext);
         }
 
+        internal static ShouldSerialize? InferDefaultShouldSerialize(
+            AttributedMembers attrMembers,
+            SerializerTypes types,
+            ITypeSymbol declaringType,
+            string propertyName,
+            ImmutableArray<AttributeSyntax> attrs,
+            Location? location,
+            ref ImmutableArray<Diagnostic> diags
+        )
+        {
+            var ignoredDiags = ImmutableArray<Diagnostic>.Empty;
+            var shouldSerializeType = Utils.GetTypeConstantWithName(attrMembers, attrs, "ShouldSerializeType", ref ignoredDiags);
+            var shouldSerializeMethod = Utils.GetConstantsWithName<string>(attrMembers, attrs, "ShouldSerializeMethodName", ref ignoredDiags);
+
+            // if anything _tried_ to set a non-default, don't include any defaults
+            if (!shouldSerializeType.IsEmpty || !shouldSerializeMethod.IsEmpty)
+            {
+                return null;
+            }
+
+            foreach (var candidate in declaringType.GetMembers("ShouldSerialize" + propertyName))
+            {
+                var mtd = candidate as IMethodSymbol;
+                if (mtd == null)
+                {
+                    continue;
+                }
+
+                if (!mtd.ReturnType.Equals(types.BuiltIn.Bool, SymbolEqualityComparer.Default))
+                {
+                    continue;
+                }
+
+                bool isStatic, takesContext;
+                var ps = mtd.Parameters;
+
+                if (mtd.IsStatic)
+                {
+                    isStatic = true;
+
+                    if (ps.Length == 0)
+                    {
+                        takesContext = false;
+                    }
+                    else if (ps.Length == 1)
+                    {
+                        takesContext = ps[0].IsInWriteContext(types.OurTypes);
+
+                        if (!takesContext && !ps[0].Type.Equals(declaringType, SymbolEqualityComparer.Default))
+                        {
+                            var diag = Diagnostics.BadShouldSerializeParameters_StaticOne(location, mtd, ps[0].Type);
+                            diags = diags.Add(diag);
+                            return null;
+                        }
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    isStatic = false;
+                    takesContext = false;
+
+                    if (ps.Length != 0)
+                    {
+                        continue;
+                    }
+                }
+
+                return new ShouldSerialize(mtd, isStatic, false, takesContext);
+            }
+
+            return null;
+        }
+
         private static Getter? GetGetterForMethod(
             Compilation compilation,
             SerializerTypes types,
@@ -356,6 +448,14 @@ namespace Cesil.SourceGenerator
             ref ImmutableArray<Diagnostic> diags
         )
         {
+            if (method.MethodKind != MethodKind.Ordinary)
+            {
+                var diag = Diagnostics.MethodMustBeOrdinary(location, method);
+                diags = diags.Add(diag);
+
+                return null;
+            }
+
             var methodReturnType = method.ReturnType;
             if (methodReturnType.SpecialType == SpecialType.System_Void)
             {
@@ -480,6 +580,7 @@ namespace Cesil.SourceGenerator
 
         private static Formatter? GetFormatter(
             Compilation compilation,
+            AttributedMembers attrMembers,
             SerializerTypes types,
             ITypeSymbol toFormatType,
             Location? location,
@@ -489,7 +590,7 @@ namespace Cesil.SourceGenerator
         {
             var formatter =
                 Utils.GetMethodFromAttribute(
-                    compilation,
+                    attrMembers,
                     "FormatterType",
                     Diagnostics.FormatterTypeSpecifiedMultipleTimes,
                     "FormatterMethodName",
@@ -522,10 +623,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            var accessible =
-                formatterMtd.DeclaredAccessibility == Accessibility.Public ||
-                (compilation.Assembly.Equals(formatterMtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                 formatterMtd.DeclaredAccessibility == Accessibility.Internal);
+            var accessible = formatterMtd.IsAccessible(attrMembers);
 
             if (!accessible)
             {
@@ -590,9 +688,9 @@ namespace Cesil.SourceGenerator
             return new Formatter(formatterMtd, toFormatType);
         }
 
-        private static bool? GetEmitDefaultValueFromAttributes(Compilation compilation, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
+        private static bool? GetEmitDefaultValueFromAttributes(AttributedMembers attrMembers, Location? location, ImmutableArray<AttributeSyntax> attrs, ref ImmutableArray<Diagnostic> diags)
         {
-            var (emitsByte, emitsBool) = Utils.GetConstantsWithName<byte, bool>(compilation, attrs, "EmitDefaultValue", ref diags);
+            var (emitsByte, emitsBool) = Utils.GetConstantsWithName<byte, bool>(attrMembers, attrs, "EmitDefaultValue", ref diags);
 
             var total = emitsByte.Length + emitsBool.Length;
 
@@ -613,13 +711,23 @@ namespace Cesil.SourceGenerator
             {
                 var byteVal = emitsByte.Single();
 
-                return
+                var logicalVal =
                     byteVal switch
                     {
                         1 => true,
                         2 => false,
-                        _ => null
+                        _ => default(bool?)
                     };
+
+                if (logicalVal == null)
+                {
+                    var diag = Diagnostics.UnexpectedConstantValue(location, byteVal.ToString(), new[] { "Yes", "No" });
+                    diags = diags.Add(diag);
+
+                    return null;
+                }
+
+                return logicalVal;
             }
 
             var boolVal = emitsBool.Single();

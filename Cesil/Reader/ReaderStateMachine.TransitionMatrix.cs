@@ -133,9 +133,11 @@ namespace Cesil
         {
             const int CACHE_SIZE = RuleCacheConfigCount * RuleCacheConfigSize;
 
-            var trueFalse = new[] { true, false };
+            Span<bool> trueFalse = stackalloc bool[2];
+            trueFalse[0] = true;
+            trueFalse[1] = false;
 
-            var ret = new TransitionRule[CACHE_SIZE];
+            var ret = GC.AllocateArray<TransitionRule>(CACHE_SIZE, pinned: true);
 
             // init all the transition matrices
             for (var i = 0; i < RuleCacheRowEndingCount; i++)
@@ -159,7 +161,7 @@ namespace Cesil
             return ret;
         }
 
-        private static ReadOnlyMemory<TransitionRule> GetTransitionMatrix(
+        private static unsafe TransitionRule* GetTransitionMatrix(
             ReadRowEnding rowEndings,
             bool escapeStartEqualsEscape,
             bool readComments,
@@ -169,9 +171,12 @@ namespace Cesil
         )
         {
             configOffset = GetConfigurationStartIndex(rowEndings, escapeStartEqualsEscape, readComments, skipLeadingWhitespace, skipTrailingWhitespace);
-            var ret = new ReadOnlyMemory<TransitionRule>(RuleCache, configOffset, RuleCacheConfigSize);
 
-            return ret;
+            // this is a no-op, because RuleCache is on the pinned heap
+            fixed (TransitionRule* ruleCachePtr = RuleCache)
+            {
+                return ruleCachePtr + configOffset;
+            }
         }
 
         private static void InitTransitionMatrix(

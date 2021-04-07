@@ -367,6 +367,38 @@ namespace Cesil
 
         // non-nullable
 
+        private static bool TryFormatNInt(nint value, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            // nint is _actually_ an IntPtr
+            switch (IntPtr.Size)
+            {
+                // IntPtr is 32-bits
+                case 4:
+                    return DefaultTypeFormatters.TryFormatInt((int)value, ctx, writer);
+                // IntPtr is 64-bits
+                case 8:
+                    return DefaultTypeFormatters.TryFormatLong((long)value, ctx, writer);
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryFormatNUInt(nuint value, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            // nuint is _actually_ a UIntPtr
+            switch (UIntPtr.Size)
+            {
+                // UIntPtr is 32-bits
+                case 4:
+                    return DefaultTypeFormatters.TryFormatUInt((uint)value, ctx, writer);
+                // UIntPtr is 64-bits
+                case 8:
+                    return DefaultTypeFormatters.TryFormatULong((ulong)value, ctx, writer);
+                default:
+                    return false;
+            }
+        }
+
         private static bool TryFormatBool(bool value, in WriteContext ctx, IBufferWriter<char> writer)
         {
             if (value)
@@ -708,6 +740,20 @@ namespace Cesil
         }
 
         // nullable
+
+        private static bool TryFormatNullableNInt(nint? value, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            if (value == null) return true;
+
+            return DefaultTypeFormatters.TryFormatNInt(value.Value, ctx, writer);
+        }
+
+        private static bool TryFormatNullableNUInt(nuint? value, in WriteContext ctx, IBufferWriter<char> writer)
+        {
+            if (value == null) return true;
+
+            return DefaultTypeFormatters.TryFormatNUInt(value.Value, ctx, writer);
+        }
 
         private static bool TryFormatNullableChar(char? value, in WriteContext ctx, IBufferWriter<char> writer)
         {

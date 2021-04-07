@@ -32,16 +32,21 @@ namespace Cesil.SourceGenerator
             RowType = rowType;
         }
 
-        internal static InstanceProvider? ForDefault(Compilation compilation, INamedTypeSymbol type, ref ImmutableArray<Diagnostic> diags)
+        internal static InstanceProvider? ForDefault(AttributedMembers attrMembers, INamedTypeSymbol type, ref ImmutableArray<Diagnostic> diags)
         {
+            var (isRecord, recordCons, _) = type.IsRecord();
+            if (isRecord)
+            {
+                recordCons = Utils.NonNull(recordCons);
+
+                return new InstanceProvider(true, recordCons, type);
+            }
+
             var defaultCons = type.InstanceConstructors.SingleOrDefault(p => p.Parameters.Length == 0);
 
             if (defaultCons != null)
             {
-                var accessible =
-                    defaultCons.DeclaredAccessibility == Accessibility.Public ||
-                    (compilation.Assembly.Equals(defaultCons.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                     defaultCons.DeclaredAccessibility == Accessibility.Internal);
+                var accessible = defaultCons.IsAccessible(attrMembers);
 
                 if (!accessible)
                 {
@@ -64,6 +69,7 @@ namespace Cesil.SourceGenerator
 
         internal static InstanceProvider? ForMethod(
             Compilation compilation,
+            AttributedMembers attrMembers,
             DeserializerTypes types,
             Location? loc,
             INamedTypeSymbol rowType,
@@ -97,10 +103,7 @@ namespace Cesil.SourceGenerator
                 return null;
             }
 
-            var accessible =
-                instanceProviderMtd.DeclaredAccessibility == Accessibility.Public ||
-                (compilation.Assembly.Equals(instanceProviderMtd.ContainingAssembly, SymbolEqualityComparer.Default) &&
-                 instanceProviderMtd.DeclaredAccessibility == Accessibility.Internal);
+            var accessible = instanceProviderMtd.IsAccessible(attrMembers);
 
             if (!accessible)
             {

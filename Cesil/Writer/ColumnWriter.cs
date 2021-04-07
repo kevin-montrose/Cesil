@@ -106,7 +106,8 @@ namespace Cesil
                             }
                         }
 
-                        return Throw.ImpossibleException<ColumnWriterDelegate>($"Could not find typed {nameof(IEquatable<object>.Equals)} method, which shouldn't be possible", options);
+                        Throw.ImpossibleException($"Could not find typed {nameof(IEquatable<object>.Equals)} method, which shouldn't be possible", options);
+                        return default;
                     }
                     else
                     {

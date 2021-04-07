@@ -658,7 +658,7 @@ namespace Test
         public void Fizz()
         {
             // should not be flagged
-            Throw.InvalidOperationException<object>(""test"");
+            Throw.InvalidOperationException_Returns<object>(""test"");
         } 
 
         public void Buzz()
@@ -765,7 +765,8 @@ namespace Cesil
     public class DefaultTypeFormatters {  public class DefaultEnumTypeFormatter<T> { } }
     public class DisposableHelper { }
     public class Throw { }
-    public class TupleDynamicParsers<T> { }
+    public class TupleDynamicRowConverters<T> { }
+    public class RecordDynamicRowConverter<T> { }
     public class WellKnownRowTypes { public class WellKnownEnumRowType<T> { } }
     public class Utils { }
 

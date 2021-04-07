@@ -96,7 +96,7 @@ namespace Cesil
                 BackingMode.Constructor => new InstanceProvider(Constructor.Value, newFallbacks, rowHandlingValue, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                 BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, newFallbacks, rowHandlingValue),
                 BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, newFallbacks, rowHandlingValue, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
-                _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                _ => Throw.ImpossibleException_Returns<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
 
@@ -110,7 +110,7 @@ namespace Cesil
 
             if (!ConstructsType.IsAssignableFrom(fallbackProvider.ConstructsType))
             {
-                return Throw.ArgumentException<InstanceProvider>($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
+                Throw.ArgumentException($"{fallbackProvider} does not provide a value assignable to {ConstructsType}, and cannot be used as a fallback for this {nameof(InstanceProvider)}", nameof(fallbackProvider));
             }
 
             var newRowNullability = Utils.CommonOutputNullHandling(ConstructsNullability, fallbackProvider.ConstructsNullability);
@@ -133,7 +133,7 @@ namespace Cesil
                     BackingMode.Constructor => new InstanceProvider(Constructor.Value, _Fallbacks, nullHandling, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                     BackingMode.Method => new InstanceProvider(Method.Value, ConstructsType, _Fallbacks, nullHandling, AheadOfTimeGeneratedType.HasValue ? AheadOfTimeGeneratedType.Value : null),
                     BackingMode.Delegate => new InstanceProvider(Delegate.Value, ConstructsType, _Fallbacks, nullHandling),
-                    _ => Throw.ImpossibleException<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.ImpossibleException_Returns<InstanceProvider>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -208,7 +208,8 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             var finalExp = selfExp;
@@ -240,30 +241,30 @@ namespace Cesil
 
             if (!method.IsStatic)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must be static", nameof(method));
+                Throw.ArgumentException("Method must be static", nameof(method));
             }
 
             if (method.ReturnType.GetTypeInfo() != Types.Bool)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must return a boolean", nameof(method));
+                Throw.ArgumentException("Method must return a boolean", nameof(method));
             }
 
             var ps = method.GetParameters();
             if (ps.Length != 2)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must have two parameters", nameof(method));
+                Throw.ArgumentException("Method must have two parameters", nameof(method));
             }
 
             if (!ps[0].IsReadContextByRef(out var msg))
             {
-                return Throw.ArgumentException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                Throw.ArgumentException($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
             var p1 = ps[1];
             var outP = p1.ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                return Throw.ArgumentException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref", nameof(method));
+                Throw.ArgumentException("Method must have a single out parameter, parameter was not by ref", nameof(method));
             }
 
             var constructs = outP.GetElementTypeNonNull();
@@ -288,19 +289,19 @@ namespace Cesil
             var ps = constructor.GetParameters();
             if (ps.Length != 0)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructor must take 0 parameters", nameof(constructor));
+                Throw.ArgumentException("Constructor must take 0 parameters", nameof(constructor));
             }
 
             var t = constructor.DeclaringTypeNonNull();
 
             if (t.IsAbstract)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
+                Throw.ArgumentException("Constructed type must be concrete, found an abstract class", nameof(constructor));
             }
 
             if (t.IsGenericTypeDefinition)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
+                Throw.ArgumentException("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
             return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull, null);
@@ -328,18 +329,18 @@ namespace Cesil
             var ps = constructor.GetParameters();
             if (ps.Length == 0)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructor must take at least one parameter", nameof(constructor));
+                Throw.ArgumentException("Constructor must take at least one parameter", nameof(constructor));
             }
 
             var t = constructor.DeclaringTypeNonNull();
             if (t.IsAbstract)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found an abstract class", nameof(constructor));
+                Throw.ArgumentException("Constructed type must be concrete, found an abstract class", nameof(constructor));
             }
 
             if (t.IsGenericTypeDefinition)
             {
-                return Throw.ArgumentException<InstanceProvider>("Constructed type must be concrete, found a generic type definition", nameof(constructor));
+                Throw.ArgumentException("Constructed type must be concrete, found a generic type definition", nameof(constructor));
             }
 
             return new InstanceProvider(constructor, ImmutableArray<InstanceProvider>.Empty, NullHandling.CannotBeNull, paired);
@@ -374,22 +375,22 @@ namespace Cesil
 
             if (forType.IsByRef)
             {
-                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for a by ref type", nameof(forType));
+                Throw.ArgumentException($"Cannot create an {nameof(InstanceProvider)} for a by ref type", nameof(forType));
             }
 
             if (forType.IsPointer)
             {
-                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for a pointer type", nameof(forType));
+                Throw.ArgumentException($"Cannot create an {nameof(InstanceProvider)} for a pointer type", nameof(forType));
             }
 
             if (forType.IsGenericTypeDefinition)
             {
-                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for an unbound generic type", nameof(forType));
+                Throw.ArgumentException($"Cannot create an {nameof(InstanceProvider)} for an unbound generic type", nameof(forType));
             }
 
             if (forType.IsGenericTypeParameter)
             {
-                return Throw.ArgumentException<InstanceProvider>($"Cannot create an {nameof(InstanceProvider)} for an generic parameter", nameof(forType));
+                Throw.ArgumentException($"Cannot create an {nameof(InstanceProvider)} for an generic parameter", nameof(forType));
             }
 
             // any value type is constructable by definition
@@ -473,7 +474,7 @@ namespace Cesil
                     BackingMode.Constructor => instanceProvider.Constructor.Value == Constructor.Value,
                     BackingMode.Delegate => instanceProvider.Delegate.Value == Delegate.Value,
                     BackingMode.Method => instanceProvider.Method.Value == Method.Value,
-                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -495,7 +496,7 @@ namespace Cesil
                 BackingMode.Constructor => $"{nameof(InstanceProvider)} using parameterless constructor {Constructor} to create {ConstructsType}",
                 BackingMode.Delegate => $"{nameof(InstanceProvider)} using delegate {Delegate} to create {ConstructsType} ({ConstructsNullability})",
                 BackingMode.Method => $"{nameof(InstanceProvider)} using method {Method} to create {ConstructsType} ({ConstructsNullability})",
-                _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                _ => Throw.InvalidOperationException_Returns<string>($"Unexpected {nameof(BackingMode)}: {Mode}")
             };
         }
 
@@ -551,25 +552,25 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.Bool)
             {
-                return Throw.InvalidOperationException<InstanceProvider>($"Delegate must return boolean, found {ret}");
+                Throw.InvalidOperationException($"Delegate must return boolean, found {ret}");
             }
 
             var ps = mtd.GetParameters();
             if (ps.Length != 2)
             {
-                return Throw.InvalidOperationException<InstanceProvider>("Method must have two parameters");
+                Throw.InvalidOperationException("Method must have two parameters");
             }
 
             if (!ps[0].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<InstanceProvider>($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}");
+                Throw.InvalidOperationException($"Method's first parameter must be a `in {nameof(ReadContext)}`; {msg}");
             }
 
             var p1 = ps[1];
             var outP = p1.ParameterType.GetTypeInfo();
             if (!outP.IsByRef)
             {
-                return Throw.InvalidOperationException<InstanceProvider>("Method must have a single out parameter, parameter was not by ref");
+                Throw.InvalidOperationException("Method must have a single out parameter, parameter was not by ref");
             }
 
             var constructs = outP.GetElementTypeNonNull();

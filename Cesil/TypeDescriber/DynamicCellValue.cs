@@ -67,7 +67,7 @@ namespace Cesil
 
                 if (!formatter.Takes.IsAssignableFrom(valType))
                 {
-                    return Throw.ArgumentException<DynamicCellValue>($"Formatter must accept an object assignable from {valType}", nameof(formatter));
+                    Throw.ArgumentException($"Formatter must accept an object assignable from {valType}", nameof(formatter));
                 }
             }
 

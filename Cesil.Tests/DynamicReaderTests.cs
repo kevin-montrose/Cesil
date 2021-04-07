@@ -16,6 +16,1142 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
+        record _OddRecordsWithOptionalColumnsConversions1(int A)
+        {
+            public Guid? B { get; set; }
+        }
+
+        record _OddRecordsWithOptionalColumnsConversions2
+        {
+            public _OddRecordConversions1 A { get; set; }
+        }
+
+        [Fact]
+        public void OddRecordsWithOptionalColumnsConversions()
+        {
+            // null cells
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\n1\r\n2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = (_OddRecordsWithOptionalColumnsConversions1)r1;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var r = (_OddRecordsWithOptionalColumnsConversions1)r2;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!!,1\r\n***,2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var r = (_OddRecordsWithOptionalColumnsConversions1)d;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var d = r2[1..];
+
+                                    var r = (_OddRecordsWithOptionalColumnsConversions1)d;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no parser
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\n1,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordsWithOptionalColumnsConversions2)r1);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!,1,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordsWithOptionalColumnsConversions2)r);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // failed parser
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\n1,abcde"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordsWithOptionalColumnsConversions1)r1);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!!,1,abcde"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordsWithOptionalColumnsConversions1)d);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
+        record _OddRecordConversions1(int A, Guid? B);
+        record _OddRecordConversions2(_OddRecordConversions1 A);
+
+        [Fact]
+        public void OddRecordConversions()
+        {
+            // null cells
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\n1\r\n2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = (_OddRecordConversions1)r1;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var r = (_OddRecordConversions1)r2;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!!,1\r\n***,2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var r = (_OddRecordConversions1)d;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var d = r2[1..];
+
+                                    var r = (_OddRecordConversions1)d;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no parser
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\n1,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions2)r1);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!,1,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions2)r);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // failed parser
+            {
+                // full row
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B\r\nabcde,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions1)r1);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B\r\n!!!,abcde,2"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions1)d);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
+        record _CastToRecord1(int A, string B);
+        record _CastToRecord2(int A)
+        {
+            public string B { get; set; }
+        }
+        record _CastToRecord3(int C) : _CastToRecord1(C * 2, C.ToString() + "!") { }
+
+        [Fact]
+        public void CastToRecord()
+        {
+            // full row
+            {
+                // all columns available
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A,B,C\r\n1,foo,3\r\n2,bar,6\r\n3,fizz,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Equal("foo", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.A);
+                                        Assert.Equal("foo", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                },
+                                r2 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Equal("bar", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("bar", as3.B);
+                                        Assert.Equal(6, as3.C);
+                                    }
+                                },
+                                r3 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Equal("fizz", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.A);
+                                        Assert.Equal("fizz", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("A\r\n1"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // ranges
+            {
+                // all columns available
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("X,A,B,C,Y\r\n--,1,foo,3,--\r\n---,2,bar,6,---\r\n----,3,fizz,3,----"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Equal("foo", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.A);
+                                        Assert.Equal("foo", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                },
+                                r2Full =>
+                                {
+                                    var r2 = r2Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Equal("bar", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("bar", as3.B);
+                                        Assert.Equal(6, as3.C);
+                                    }
+                                },
+                                r3Full =>
+                                {
+                                    var r3 = r3Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Equal("fizz", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.A);
+                                        Assert.Equal("fizz", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                RunSyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("1,2,3,A,5\r\na,b,c,1,e"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[3..^1];
+
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no column names, full row
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // all columns available
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("1,foo,3\r\n2,bar,6\r\n3,fizz,3"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.C);
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("1!", as3.B);
+                                    }
+                                },
+                                r2 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.C);
+                                        Assert.Equal(4, as3.A);
+                                        Assert.Equal("2!", as3.B);
+                                    }
+                                },
+                                r3 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.C);
+                                        Assert.Equal(6, as3.A);
+                                        Assert.Equal("3!", as3.B);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("1"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no column names, ranges
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // all columns available
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("--,1,foo,3,--\r\n---,2,bar,6,---\r\n----,3,fizz,3,----"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.C);
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("1!", as3.B);
+                                    }
+                                },
+                                r2Full =>
+                                {
+                                    var r2 = r2Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.C);
+                                        Assert.Equal(4, as3.A);
+                                        Assert.Equal("2!", as3.B);
+                                    }
+                                },
+                                r3Full =>
+                                {
+                                    var r3 = r3Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.C);
+                                        Assert.Equal(6, as3.A);
+                                        Assert.Equal("3!", as3.B);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                RunSyncDynamicReaderVariants(
+                    opts,
+                    (config, getReader) =>
+                    {
+                        using (var reader = getReader("1a,b,c,1,e"))
+                        using (var csv = config.CreateReader(reader))
+                        {
+                            var rows = csv.ReadAll();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[3..^1];
+
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public void DetectRowEndingsAndHeaders()
+        {
+            // \r\n
+            {
+                // detect, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \r
+            {
+                // detect, explict no headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\r456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\rfoo,123\rbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \n
+            {
+                // detect, explict no headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Never),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("123,foo\n456,bar"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    RunSyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Always),
+                        (config, getReader) =>
+                        {
+                            using (var reader = getReader("B,A\nfoo,123\nbar,456"))
+                            using (var csv = config.CreateReader(reader))
+                            {
+                                var rows = csv.ReadAll();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            static Options MakeOptions(ReadRowEnding rowEndings, ReadHeader headers)
+            {
+                return Options.CreateBuilder(Options.DynamicDefault).WithReadRowEnding(rowEndings).WithReadHeader(headers).ToOptions();
+            }
+        }
+
         [Fact]
         public void SkipThenSpecial()
         {
@@ -1883,6 +3019,87 @@ namespace Cesil.Tests
                     }
                 }
             );
+        }
+
+        [Fact]
+        public void PassthroughRowEnumerator()
+        {
+            // null cell
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using(var reader = getReader("a,b,c\r\n1,2"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        var row = Assert.Single(rows);
+
+                        var ienumerable = (IEnumerable<dynamic>)row;
+
+                        var cells = ienumerable.ToList();
+
+                        Assert.Collection(
+                            cells,
+                            c1 => Assert.Equal(1, (int)c1),
+                            c2 => Assert.Equal(2, (int)c2),
+                            c3 => Assert.Null(c3 as object)
+                        );
+                    }
+                }
+            );
+
+            // enumerator reset able
+            RunSyncDynamicReaderVariants(
+                Options.DynamicDefault,
+                (config, getReader) =>
+                {
+                    using (var reader = getReader("a,b,c\r\n1,2"))
+                    using (var csv = config.CreateReader(reader))
+                    {
+                        var rows = csv.ReadAll();
+                        var row = Assert.Single(rows);
+
+                        var ienumerable = (IEnumerable<dynamic>)row;
+
+                        var ix = 0;
+
+                        var ienumerator = ienumerable.GetEnumerator();
+                        while (ienumerator.MoveNext())
+                        {
+                            var cell = ienumerator.Current;
+                            switch (ix)
+                            {
+                                case 0: Assert.Equal(1, (int)cell); break;
+                                case 1: Assert.Equal(2, (int)cell); break;
+                                case 2: Assert.Null(cell as object); break;
+                                default: throw new Exception();
+                            }
+
+                            ix++;
+                        }
+
+                        ienumerator.Reset();
+
+                        ix = 0;
+                        while (ienumerator.MoveNext())
+                        {
+                            var cell = ienumerator.Current;
+                            switch (ix)
+                            {
+                                case 0: Assert.Equal(1, (int)cell); break;
+                                case 1: Assert.Equal(2, (int)cell); break;
+                                case 2: Assert.Null(cell as object); break;
+                                default: throw new Exception();
+                            }
+
+                            ix++;
+                        }
+                    }
+                }
+            );
+
+            // doesn't need an async equivalent
         }
 
         [Fact]
@@ -7217,6 +8434,951 @@ loop:
         }
 
         // async tests
+
+        [Fact]
+        public async Task OddRecordConversionsAsync()
+        {
+            // null cells
+            {
+                // full row
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\n1\r\n2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = (_OddRecordConversions1)r1;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var r = (_OddRecordConversions1)r2;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("X,A,B\r\n!!!,1\r\n***,2,A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var r = (_OddRecordConversions1)d;
+                                    Assert.Equal(1, r.A);
+                                    Assert.Null(r.B);
+                                },
+                                r2 =>
+                                {
+                                    var d = r2[1..];
+
+                                    var r = (_OddRecordConversions1)d;
+                                    Assert.Equal(2, r.A);
+                                    Assert.Equal(Guid.Parse("A4B4E38C-ED1E-41DE-AF1B-7D3C2B68A4AE"), r.B.Value);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no parser
+            {
+                // full row
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\n1,2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions2)r1);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("X,A,B\r\n!!,1,2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var r = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions2)r);
+
+                                    Assert.StartsWith("No parser found to convert cell", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // failed parser
+            {
+                // full row
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B\r\nabcde,2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions1)r1);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // range
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("X,A,B\r\n!!!,abcde,2"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var d = r1[1..];
+
+                                    var exc = Assert.Throws<InvalidOperationException>(() => (_OddRecordConversions1)d);
+
+                                    Assert.EndsWith(" returned false", exc.Message);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task CastToRecordAsync()
+        {
+            // full row
+            {
+                // all columns available
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A,B,C\r\n1,foo,3\r\n2,bar,6\r\n3,fizz,3"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Equal("foo", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.A);
+                                        Assert.Equal("foo", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                },
+                                r2 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Equal("bar", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("bar", as3.B);
+                                        Assert.Equal(6, as3.C);
+                                    }
+                                },
+                                r3 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Equal("fizz", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.A);
+                                        Assert.Equal("fizz", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("A\r\n1"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // ranges
+            {
+                // all columns available
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("X,A,B,C,Y\r\n--,1,foo,3,--\r\n---,2,bar,6,---\r\n----,3,fizz,3,----"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Equal("foo", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.A);
+                                        Assert.Equal("foo", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                },
+                                r2Full =>
+                                {
+                                    var r2 = r2Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Equal("bar", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("bar", as3.B);
+                                        Assert.Equal(6, as3.C);
+                                    }
+                                },
+                                r3Full =>
+                                {
+                                    var r3 = r3Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Equal("fizz", as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.A);
+                                        Assert.Equal("fizz", as3.B);
+                                        Assert.Equal(3, as3.C);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                await RunAsyncDynamicReaderVariants(
+                    Options.DynamicDefault,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("1,2,3,A,5\r\na,b,c,1,e"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[3..^1];
+
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no column names, full row
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // all columns available
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("1,foo,3\r\n2,bar,6\r\n3,fizz,3"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.C);
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("1!", as3.B);
+                                    }
+                                },
+                                r2 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.C);
+                                        Assert.Equal(4, as3.A);
+                                        Assert.Equal("2!", as3.B);
+                                    }
+                                },
+                                r3 =>
+                                {
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.C);
+                                        Assert.Equal(6, as3.A);
+                                        Assert.Equal("3!", as3.B);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("1"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1 =>
+                                {
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+
+            // no column names, ranges
+            {
+                var opts = Options.CreateBuilder(Options.DynamicDefault).WithReadHeader(ReadHeader.Never).ToOptions();
+
+                // all columns available
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("--,1,foo,3,--\r\n---,2,bar,6,---\r\n----,3,fizz,3,----"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r1;
+                                        Assert.Equal(1, as1.A);
+                                        Assert.Equal("foo", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r1;
+                                        Assert.Equal(1, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r1;
+                                        Assert.Equal(1, as3.C);
+                                        Assert.Equal(2, as3.A);
+                                        Assert.Equal("1!", as3.B);
+                                    }
+                                },
+                                r2Full =>
+                                {
+                                    var r2 = r2Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r2;
+                                        Assert.Equal(2, as1.A);
+                                        Assert.Equal("bar", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r2;
+                                        Assert.Equal(2, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r2;
+                                        Assert.Equal(2, as3.C);
+                                        Assert.Equal(4, as3.A);
+                                        Assert.Equal("2!", as3.B);
+                                    }
+                                },
+                                r3Full =>
+                                {
+                                    var r3 = r3Full[1..^1];
+
+                                    {
+                                        var as1 = (_CastToRecord1)r3;
+                                        Assert.Equal(3, as1.A);
+                                        Assert.Equal("fizz", as1.B);
+                                    }
+
+                                    {
+                                        var as2 = (_CastToRecord2)r3;
+                                        Assert.Equal(3, as2.A);
+                                        Assert.Null(as2.B);
+                                    }
+
+                                    {
+                                        var as3 = (_CastToRecord3)r3;
+                                        Assert.Equal(3, as3.C);
+                                        Assert.Equal(6, as3.A);
+                                        Assert.Equal("3!", as3.B);
+                                    }
+                                }
+                            );
+                        }
+                    }
+                );
+
+                // optional columns
+                await RunAsyncDynamicReaderVariants(
+                    opts,
+                    async (config, getReader) =>
+                    {
+                        await using (var reader = await getReader("1a,b,c,1,e"))
+                        await using (var csv = config.CreateAsyncReader(reader))
+                        {
+                            var rows = await csv.ReadAllAsync();
+
+                            Assert.Collection(
+                                rows,
+                                r1Full =>
+                                {
+                                    var r1 = r1Full[3..^1];
+
+                                    var a1 = (_CastToRecord2)r1;
+                                    Assert.Equal(1, a1.A);
+                                    Assert.Null(a1.B);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task DetectRowEndingsAndHeadersAsync()
+        {
+            // \r\n
+            {
+                // detect, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Never),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("123,foo\r\n456,bar"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturnLineFeed, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\r\nfoo,123\r\nbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \r
+            {
+                // detect, explict no headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("123,foo\r456,bar"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\rfoo,123\rbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Never),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("123,foo\r456,bar"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.CarriageReturn, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\rfoo,123\rbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            // \n
+            {
+                // detect, explict no headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Never),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("123,foo\n456,bar"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // detect, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.Detect, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\nfoo,123\nbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit no headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Never),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("123,foo\n456,bar"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1[0]);
+                                        Assert.Equal("foo", (string)r1[1]);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2[0]);
+                                        Assert.Equal("bar", (string)r2[1]);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+
+                // explicit, explicit has headers
+                {
+                    await RunAsyncDynamicReaderVariants(
+                        MakeOptions(ReadRowEnding.LineFeed, ReadHeader.Always),
+                        async (config, getReader) =>
+                        {
+                            await using (var reader = await getReader("B,A\nfoo,123\nbar,456"))
+                            await using (var csv = config.CreateAsyncReader(reader))
+                            {
+                                var rows = await csv.ReadAllAsync();
+                                Assert.Collection(
+                                    rows,
+                                    r1 =>
+                                    {
+                                        Assert.Equal(123, (int)r1.A);
+                                        Assert.Equal("foo", (string)r1.B);
+                                    },
+                                    r2 =>
+                                    {
+                                        Assert.Equal(456, (int)r2.A);
+                                        Assert.Equal("bar", (string)r2.B);
+                                    }
+                                );
+                            }
+                        }
+                    );
+                }
+            }
+
+            static Options MakeOptions(ReadRowEnding rowEndings, ReadHeader headers)
+            {
+                return Options.CreateBuilder(Options.DynamicDefault).WithReadRowEnding(rowEndings).WithReadHeader(headers).ToOptions();
+            }
+        }
 
         [Fact]
         public async Task SkipThenSpecialAsync()

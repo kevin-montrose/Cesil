@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Linq;
@@ -13,6 +14,87 @@ namespace Cesil.Tests
 {
     public class WrapperTests
     {
+        internal static bool _BadGeneratedSerializableMembers1(object row, in WriteContext ctx, IBufferWriter<char> buffer)
+        {
+            return false;
+        }
+
+        public bool _BadGeneratedSerializableMembers2(object row, in WriteContext ctx, IBufferWriter<char> buffer)
+        {
+            return false;
+        }
+
+#pragma warning disable xUnit1013 // this isn't a test, but needs to be public 
+        public static void _BadGeneratedSerializableMembers3(object row, in WriteContext ctx, IBufferWriter<char> buffer)
+#pragma warning restore xUnit1013 
+        {
+            return;
+        }
+
+        public static bool _BadGeneratedSerializableMembers4()
+        {
+            return false;
+        }
+
+        public static bool _BadGeneratedSerializableMembers5(string row, in WriteContext ctx, IBufferWriter<char> buffer)
+        {
+            return false;
+        }
+
+        public static bool _BadGeneratedSerializableMembers6(object row, in string ctx, IBufferWriter<char> buffer)
+        {
+            return false;
+        }
+
+        public static bool _BadGeneratedSerializableMembers7(object row, in WriteContext ctx, string buffer)
+        {
+            return false;
+        }
+
+        [Fact]
+        public void BadGeneratedSerializableMembers()
+        {
+            var t = typeof(WrapperTests).GetTypeInfo();
+
+            var g = (Getter)(StaticGetterDelegate<string>)((in WriteContext ctx) => "foo");
+            var f = Formatter.GetDefault(typeof(string).GetTypeInfo());
+
+            var nonPublicMtd = t.GetMethod(nameof(_BadGeneratedSerializableMembers1), BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.NotNull(nonPublicMtd);
+            var exc1 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", nonPublicMtd, g, f, null, true));
+            Assert.Equal("Generated method should be public, but wasn't (Parameter 'generated')", exc1.Message);
+
+            var nonStaticMtd = t.GetMethod(nameof(_BadGeneratedSerializableMembers2), BindingFlags.Public | BindingFlags.Instance);
+            Assert.NotNull(nonStaticMtd);
+            var exc2 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", nonStaticMtd, g, f, null, true));
+            Assert.Equal("Generated method should be static, but wasn't (Parameter 'generated')", exc2.Message);
+
+            var nonBoolReturning = t.GetMethod(nameof(_BadGeneratedSerializableMembers3), BindingFlags.Public | BindingFlags.Static);
+            Assert.NotNull(nonBoolReturning);
+            var exc3 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", nonBoolReturning, g, f, null, true));
+            Assert.Equal("Generated method should return bool, but doesn't (Parameter 'generated')", exc3.Message);
+
+            var wrongParamCount = t.GetMethod(nameof(_BadGeneratedSerializableMembers4), BindingFlags.Public | BindingFlags.Static);
+            Assert.NotNull(wrongParamCount);
+            var exc4 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", wrongParamCount, g, f, null, true));
+            Assert.Equal("Generated method should take 3 parameters, but doesn't (Parameter 'generated')", exc4.Message);
+
+            var doesntTakeObject = t.GetMethod(nameof(_BadGeneratedSerializableMembers5), BindingFlags.Public | BindingFlags.Static);
+            Assert.NotNull(doesntTakeObject);
+            var exc5 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", doesntTakeObject, g, f, null, true));
+            Assert.Equal("Generated method's first parameter should be object, but was System.String (Parameter 'generated')", exc5.Message);
+
+            var doesntTakeContext = t.GetMethod(nameof(_BadGeneratedSerializableMembers6), BindingFlags.Public | BindingFlags.Static);
+            Assert.NotNull(doesntTakeContext);
+            var exc6 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", doesntTakeContext, g, f, null, true));
+            Assert.Equal("Generated method's second parameter should be in WriteContext; was not WriteContext (Parameter 'generated')", exc6.Message);
+
+            var doesntTakeBuffer = t.GetMethod(nameof(_BadGeneratedSerializableMembers7), BindingFlags.Public | BindingFlags.Static);
+            Assert.NotNull(doesntTakeBuffer);
+            var exc7 = Assert.Throws<ArgumentException>(() => SerializableMember.ForGeneratedMethod("Foo", doesntTakeBuffer, g, f, null, true));
+            Assert.Equal("Generated method's third parameter should be IBufferWriter<char>, but was System.String (Parameter 'generated')", exc7.Message);
+        }
+
         [Fact]
         public void ReadResult()
         {
@@ -4820,6 +4902,241 @@ namespace Cesil.Tests
 
                 return code;
             }
+        }
+
+        [Fact]
+        public void SourceGeneratorAttributes()
+        {
+            // SerializerMemberAttribute
+            {
+                var names = new[] { default(string), "foo", "bar" };
+                var orders = new[] { default(int?), 0, 1 };
+                var formatterType = new[] { default(Type), typeof(string), typeof(int) };
+                var formatterMethodName = new[] { default(string), "hello", "world" };
+                var shouldSerializeType = new[] { default(Type), typeof(Guid), typeof(double) };
+                var shouldSerializeMethodName = new[] { default(string), "fizz", "buzz" };
+                var emitDefaultValue = new[] { EmitDefaultValue.Yes, EmitDefaultValue.No };
+
+                var builder = ImmutableArray.CreateBuilder<SerializerMemberAttribute>();
+                foreach (var n in names)
+                    foreach (var o in orders)
+                        foreach (var ft in formatterType)
+                            foreach (var fmn in formatterMethodName)
+                                foreach (var sst in shouldSerializeType)
+                                    foreach (var ssmn in shouldSerializeMethodName)
+                                        foreach (var edv in emitDefaultValue)
+                                        {
+                                            if (o != null)
+                                            {
+                                                builder.Add(new SerializerMemberAttribute { Name = n, Order = o.Value, FormatterType = ft, FormatterMethodName = fmn, ShouldSerializeType = sst, ShouldSerializeMethodName = ssmn, EmitDefaultValue = edv });
+                                            }
+                                            else
+                                            {
+                                                builder.Add(new SerializerMemberAttribute { Name = n, FormatterType = ft, FormatterMethodName = fmn, ShouldSerializeType = sst, ShouldSerializeMethodName = ssmn, EmitDefaultValue = edv });
+                                            }
+                                        }
+
+                var attrs = builder.ToImmutable();
+                for (var i = 0; i < attrs.Length; i++)
+                {
+                    var a = attrs[i];
+
+                    Assert.False(a.Equals("hello"));
+
+                    for (var j = 0; j < attrs.Length; j++)
+                    {
+                        var b = attrs[j];
+
+                        if (i == j)
+                        {
+                            Assert.True(a.Equals(b));
+                            Assert.True(a.Equals((object)b));
+                            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+                        }
+                        else
+                        {
+                            Assert.False(a.Equals(b));
+                            Assert.False(a.Equals((object)b));
+                        }
+                    }
+                }
+            }
+
+            // DeserializerMemberAttribute
+            {
+                var names = new[] { default(string), "foo", "bar" };
+                var orders = new[] { default(int?), 0, 1 };
+                var parserMethodName = new[] { default(string), "hello", "world" };
+                var parserType = new[] { default(Type), typeof(Guid), typeof(double) };
+                var resetMethodName = new[] { default(string), "fizz", "buzz" };
+                var resetType = new[] { default(Type), typeof(string), typeof(int) };
+                var memberRequired = new[] { MemberRequired.Yes, MemberRequired.No };
+
+                var builder = ImmutableArray.CreateBuilder<DeserializerMemberAttribute>();
+                foreach (var n in names)
+                    foreach (var o in orders)
+                        foreach (var pt in parserType)
+                            foreach (var pmn in parserMethodName)
+                                foreach (var rmn in resetMethodName)
+                                    foreach (var rt in resetType)
+                                        foreach (var m in memberRequired)
+                                        {
+                                            if (o != null)
+                                            {
+                                                builder.Add(new DeserializerMemberAttribute { Name = n, MemberRequired = m, Order = o.Value, ParserMethodName = pmn, ParserType = pt, ResetMethodName = rmn, ResetType = rt });
+                                            }
+                                            else
+                                            {
+                                                builder.Add(new DeserializerMemberAttribute { Name = n, MemberRequired = m, ParserMethodName = pmn, ParserType = pt, ResetMethodName = rmn, ResetType = rt });
+                                            }
+                                        }
+
+                var attrs = builder.ToImmutable();
+                for (var i = 0; i < attrs.Length; i++)
+                {
+                    var a = attrs[i];
+
+                    Assert.False(a.Equals("hello"));
+
+                    for (var j = 0; j < attrs.Length; j++)
+                    {
+                        var b = attrs[j];
+
+                        if (i == j)
+                        {
+                            Assert.True(a.Equals(b));
+                            Assert.True(a.Equals((object)b));
+                            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+                        }
+                        else
+                        {
+                            Assert.False(a.Equals(b));
+                            Assert.False(a.Equals((object)b));
+                        }
+                    }
+                }
+            }
+
+            // GenerateDeserializerAttribute 
+            {
+                var types = new[] { default(Type), typeof(Guid), typeof(double) };
+                var names = new[] { default(string), "foo", "bar" };
+
+                var builder = ImmutableArray.CreateBuilder<GenerateDeserializerAttribute>();
+                foreach (var t in types)
+                    foreach (var n in names)
+                    {
+                        builder.Add(new GenerateDeserializerAttribute { InstanceProviderMethodName = n, InstanceProviderType = t });
+                    }
+
+                var attrs = builder.ToImmutable();
+                for (var i = 0; i < attrs.Length; i++)
+                {
+                    var a = attrs[i];
+
+                    Assert.False(a.Equals("hello"));
+
+                    for (var j = 0; j < attrs.Length; j++)
+                    {
+                        var b = attrs[j];
+
+                        if (i == j)
+                        {
+                            Assert.True(a.Equals(b));
+                            Assert.True(a.Equals((object)b));
+                            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+                        }
+                        else
+                        {
+                            Assert.False(a.Equals(b));
+                            Assert.False(a.Equals((object)b));
+                        }
+                    }
+                }
+            }
+
+            // ConstructorInstanceProviderAttribute
+#pragma warning disable CS0618 // testing something that is intentionally [Obsolete]
+            {
+                var type = new[] { typeof(string), typeof(int) };
+                var index = new[] { 0, 1 };
+
+                var builder = ImmutableArray.CreateBuilder<ConstructorInstanceProviderAttribute>();
+
+                foreach (var t1 in type)
+                    foreach (var t2 in type)
+                        foreach (var i in index)
+                        {
+                            builder.Add(new ConstructorInstanceProviderAttribute(t1, t2, i));
+                        }
+
+                var attrs = builder.ToImmutable();
+                for (var i = 0; i < attrs.Length; i++)
+                {
+                    var a = attrs[i];
+
+                    Assert.False(a.Equals("hello"));
+
+                    for (var j = 0; j < attrs.Length; j++)
+                    {
+                        var b = attrs[j];
+
+                        if (i == j)
+                        {
+                            Assert.True(a.Equals(b));
+                            Assert.True(a.Equals((object)b));
+                            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+                        }
+                        else
+                        {
+                            Assert.False(a.Equals(b));
+                            Assert.False(a.Equals((object)b));
+                        }
+                    }
+                }
+            }
+#pragma warning restore CS0618
+
+            // SetterBackedByInitOnlyPropertyAttribute
+#pragma warning disable CS0618 // testing something that is intentionally [Obsolete]
+            {
+                var names = new[] { "hello", "world" };
+                var flags = new[] { BindingFlags.Public, BindingFlags.Static };
+
+                var builder = ImmutableArray.CreateBuilder<SetterBackedByInitOnlyPropertyAttribute>();
+
+                foreach (var n in names)
+                    foreach (var f in flags)
+                    {
+                        builder.Add(new SetterBackedByInitOnlyPropertyAttribute(n, f));
+                    }
+
+                var attrs = builder.ToImmutable();
+                for (var i = 0; i < attrs.Length; i++)
+                {
+                    var a = attrs[i];
+
+                    Assert.False(a.Equals("hello"));
+
+                    for (var j = 0; j < attrs.Length; j++)
+                    {
+                        var b = attrs[j];
+
+                        if (i == j)
+                        {
+                            Assert.True(a.Equals(b));
+                            Assert.True(a.Equals((object)b));
+                            Assert.Equal(a.GetHashCode(), b.GetHashCode());
+                        }
+                        else
+                        {
+                            Assert.False(a.Equals(b));
+                            Assert.False(a.Equals((object)b));
+                        }
+                    }
+                }
+            }
+#pragma warning restore CS0618
         }
     }
 }

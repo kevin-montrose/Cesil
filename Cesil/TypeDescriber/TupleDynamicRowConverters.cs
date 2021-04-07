@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace Cesil
 {
-    internal static class TupleDynamicParsers<T>
+    internal static class TupleDynamicRowConverters<T>
     {
         private static readonly TypeInfo[] ArgTypes = GetTupleArgTypes(typeof(T).GetTypeInfo());
 
@@ -28,7 +28,8 @@ namespace Cesil
 #pragma warning disable CES0005 // a generic type that we aren't actually going to produce
                 res = default!;
 #pragma warning restore CES0005
-                return Throw.ImpossibleException<bool>($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+                Throw.ImpossibleException($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+                return default;
             }
         }
 
@@ -53,93 +54,37 @@ namespace Cesil
 #pragma warning disable CES0005 // a generic type that we aren't actually going to produce
                 res = default!;
 #pragma warning restore CES0005
-                return Throw.ImpossibleException<bool>($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+                Throw.ImpossibleException($"Tried to convert unexpected dynamic type ({row.GetType()?.GetTypeInfo()})");
+                return default;
             }
         }
 
         private static object GetTupleForRow(DynamicRow row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, row, null, null, colTypes);
+            var data = Utils.MakeArrayOfObjects(row, row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
         private static object GetTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
+            var data = Utils.MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.Tuple_Array);
         }
 
         private static object GetValueTupleForRow(DynamicRow row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row, row, null, null, colTypes);
+            var data = Utils.MakeArrayOfObjects(row, row, null, null, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
         }
 
         private static object GetValueTupleForRange(DynamicRowRange row, TypeInfo[] colTypes)
         {
-            var data = MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
+            var data = Utils.MakeArrayOfObjects(row.Parent, row, row.Offset, row.Length, colTypes);
 
             return ConvertToTuple(colTypes, data, 0, Types.ValueTuple_Array);
-        }
-
-        private static object?[] MakeArrayOfObjects(DynamicRow row, ITestableDisposable dependsOn, int? offset, int? length, TypeInfo[] colTypes)
-        {
-            var ret = new object?[length ?? colTypes.Length];
-
-            var i = 0;
-            var retIx = 0;
-            foreach (var col in row.Columns)
-            {
-                if (offset.HasValue && col.Index < offset.Value)
-                {
-                    goto end;
-                }
-
-                if (!row.IsSet(i))
-                {
-                    goto end;
-                }
-
-                var cell = row.GetCellAt(dependsOn, i);
-                if (cell == null)
-                {
-                    return Throw.InvalidOperationException<object[]>("Unexpected null value in dynamic row cell");
-                }
-
-                var colType = colTypes[retIx];
-
-                var parser = cell.GetParser(colType, out var ctx);
-                if (parser == null)
-                {
-                    return Throw.InvalidOperationException<object[]>($"No parser found to convert cell at index={i} to {colType}");
-                }
-
-                var delProvider = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
-
-                var del = delProvider.Guarantee(row.Owner);
-
-                var data = cell.GetDataSpan();
-                if (!del(data, ctx, out var res))
-                {
-                    return Throw.InvalidOperationException<object[]>($"{nameof(Parser)} {parser} returned false");
-                }
-
-                ret[retIx] = res;
-                retIx++;
-
-end:
-                i++;
-
-                if (retIx == ret.Length)
-                {
-                    break;
-                }
-            }
-
-            return ret;
         }
 
         private static TypeInfo[] GetTupleArgTypes(TypeInfo tupleType)

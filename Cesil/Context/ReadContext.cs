@@ -43,7 +43,8 @@ namespace Cesil
                     case ReadContextMode.ConvertingRow:
                         return false;
                     default:
-                        return Throw.InvalidOperationException<bool>($"Unexpected {nameof(ReadContextMode)}: {Mode}");
+                        Throw.InvalidOperationException($"Unexpected {nameof(ReadContextMode)}: {Mode}");
+                        return default;
 
                 }
             }
@@ -60,7 +61,7 @@ namespace Cesil
             {
                 if (!HasColumn)
                 {
-                    return Throw.InvalidOperationException<ColumnIdentifier>($"No column is available when {nameof(Mode)} is {Mode}");
+                    Throw.InvalidOperationException($"No column is available when {nameof(Mode)} is {Mode}");
                 }
 
                 return _Column;

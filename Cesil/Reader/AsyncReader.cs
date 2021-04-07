@@ -45,141 +45,118 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
             }
         }
 
-        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool pinAcquired, bool checkRecord, ref T record, CancellationToken cancellationToken)
+        internal override ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync(bool returnComments, bool checkRecord, ref T record, CancellationToken cancellationToken)
         {
-            ReaderStateMachine.PinHandle handle = default;
-            var disposeHandle = true;
-
-            if (!pinAcquired)
-            {
-                handle = StateMachine.Pin();
-            }
-
             TryPreAllocateRow(checkRecord, ref record);
 
-            try
+            var madeProgress = true;
+            while (true)
             {
-                var madeProgress = true;
-                while (true)
+                PreparingToWriteToBuffer();
+
+                var availableTask = Buffer.ReadAsync(Inner, madeProgress, cancellationToken);
+                if (!availableTask.IsCompletedSuccessfully(this))
                 {
-                    PreparingToWriteToBuffer();
-
-                    var availableTask = Buffer.ReadAsync(Inner, madeProgress, cancellationToken);
-                    if (!availableTask.IsCompletedSuccessfully(this))
-                    {
-
-                        disposeHandle = false;
-                        return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, handle, returnComments, cancellationToken);
-                    }
-
-                    var available = availableTask.Result;
-                    if (available == 0)
-                    {
-                        var endRes = EndOfData();
-
-                        var advanceRes = HandleAdvanceResult(endRes, returnComments, ending: true);
-
-                        return new ValueTask<ReadWithCommentResult<T>>(advanceRes);
-                    }
-
-                    if (!RowBuilder.RowStarted)
-                    {
-                        StartRow();
-                    }
-
-                    var res = AdvanceWork(available, out madeProgress);
-                    var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
-                    if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                    {
-                        return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
-                    }
+                    return TryReadInnerAsync_ContinueAfterReadAsync(this, availableTask, returnComments, cancellationToken);
                 }
-            }
-            finally
-            {
-                if (disposeHandle)
+
+                var available = availableTask.Result;
+                if (available == 0)
                 {
-                    handle.Dispose();
+                    var endRes = EndOfData();
+
+                    var advanceRes = HandleAdvanceResult(endRes, returnComments, ending: true);
+
+                    return new ValueTask<ReadWithCommentResult<T>>(advanceRes);
+                }
+
+                if (!RowBuilder.RowStarted)
+                {
+                    StartRow();
+                }
+
+                var res = AdvanceWork(available, out madeProgress);
+                var possibleReturn = HandleAdvanceResult(res, returnComments, ending: false);
+                if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                {
+                    return new ValueTask<ReadWithCommentResult<T>>(possibleReturn);
                 }
             }
 
             // continue after we read a chunk into a buffer
-            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, ReaderStateMachine.PinHandle handle, bool returnComments, CancellationToken cancellationToken)
+            static async ValueTask<ReadWithCommentResult<T>> TryReadInnerAsync_ContinueAfterReadAsync(AsyncReader<T> self, ValueTask<int> waitFor, bool returnComments, CancellationToken cancellationToken)
             {
                 try
                 {
-                    using (handle)
+                    bool madeProgress;
+
+                    // finish this loop up
                     {
-                        bool madeProgress;
-
-                        // finish this loop up
+                        int available;
                         {
-                            int available;
-                            self.StateMachine.ReleasePinForAsync(waitFor);
-                            {
-                                available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
-                            }
-                            if (available == 0)
-                            {
-                                var endRes = self.EndOfData();
+                            available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                        }
+                        if (available == 0)
+                        {
+                            var endRes = self.EndOfData();
 
-                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
-                            }
-
-                            if (!self.RowBuilder.RowStarted)
-                            {
-                                self.StartRow();
-                            }
-
-                            var res = self.AdvanceWork(available, out madeProgress);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
-                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                            {
-                                return possibleReturn;
-                            }
+                            return self.HandleAdvanceResult(endRes, returnComments, ending: true);
                         }
 
-                        // back into the loop
-                        while (true)
+                        if (!self.RowBuilder.RowStarted)
                         {
-                            self.PreparingToWriteToBuffer();
+                            self.StartRow();
+                        }
 
-                            var availableTask = self.Buffer.ReadAsync(self.Inner, madeProgress, cancellationToken);
-                            int available;
-                            self.StateMachine.ReleasePinForAsync(availableTask);
-                            {
-                                available = await ConfigureCancellableAwait(self, availableTask, cancellationToken);
-                            }
-                            if (available == 0)
-                            {
-                                var endRes = self.EndOfData();
+                        var res = self.AdvanceWork(available, out madeProgress);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                        {
+                            return possibleReturn;
+                        }
+                    }
 
-                                return self.HandleAdvanceResult(endRes, returnComments, ending: true);
-                            }
+                    // back into the loop
+                    while (true)
+                    {
+                        self.PreparingToWriteToBuffer();
 
-                            if (!self.RowBuilder.RowStarted)
-                            {
-                                self.StartRow();
-                            }
+                        var availableTask = self.Buffer.ReadAsync(self.Inner, madeProgress, cancellationToken);
+                        int available;
+                        {
+                            available = await ConfigureCancellableAwait(self, availableTask, cancellationToken);
+                        }
+                        if (available == 0)
+                        {
+                            var endRes = self.EndOfData();
 
-                            var res = self.AdvanceWork(available, out madeProgress);
-                            var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
-                            if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
-                            {
-                                return possibleReturn;
-                            }
+                            return self.HandleAdvanceResult(endRes, returnComments, ending: true);
+                        }
+
+                        if (!self.RowBuilder.RowStarted)
+                        {
+                            self.StartRow();
+                        }
+
+                        var res = self.AdvanceWork(available, out madeProgress);
+                        var possibleReturn = self.HandleAdvanceResult(res, returnComments, ending: false);
+                        if (possibleReturn.ResultType != ReadWithCommentResultType.NoValue)
+                        {
+                            return possibleReturn;
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    return Throw.PoisonAndRethrow<ReadWithCommentResult<T>>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
+
+                return default;
             }
         }
 
@@ -232,7 +209,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
                 finally
                 {
@@ -298,7 +275,7 @@ namespace Cesil
                 }
                 catch (Exception e)
                 {
-                    Throw.PoisonAndRethrow<object>(self, e);
+                    Throw.PoisonAndRethrow(self, e);
                 }
                 finally
                 {
@@ -325,7 +302,7 @@ namespace Cesil
                 {
                     Cleanup(this);
 
-                    return Throw.PoisonAndRethrow<ValueTask>(this, e);
+                    Throw.PoisonAndRethrow(this, e);
                 }
 
                 Cleanup(this);
@@ -340,8 +317,6 @@ namespace Cesil
 
                 self.Buffer.Dispose();
                 self.Partial.Dispose();
-                self.StateMachine?.Dispose();
-                self.SharedCharacterLookup.Dispose();
             }
 
             // continue after Inner.DisposeAsync completes
@@ -355,9 +330,7 @@ namespace Cesil
                 {
                     Cleanup(self);
 
-                    Throw.PoisonAndRethrow<object>(self, e);
-
-                    return;
+                    Throw.PoisonAndRethrow(self, e);
                 }
 
                 Cleanup(self);

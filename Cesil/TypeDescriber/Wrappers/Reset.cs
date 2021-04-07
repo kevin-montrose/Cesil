@@ -47,7 +47,7 @@ namespace Cesil
                     {
                         BackingMode.Method => Method.Value.IsStatic,
                         BackingMode.Delegate => !RowType.HasValue,
-                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                        _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
                     };
             }
         }
@@ -139,7 +139,8 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             return selfExp;
@@ -154,7 +155,7 @@ namespace Cesil
 
             if (RowTypeNullability == null)
             {
-                return Throw.InvalidOperationException<Reset>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+                Throw.InvalidOperationException($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
             Utils.ValidateNullHandling(RowType.Value, nullHandling);
@@ -164,7 +165,7 @@ namespace Cesil
                 {
                     BackingMode.Method => new Reset(RowType.Value, Method.Value, TakesContext, nullHandling),
                     BackingMode.Delegate => new Reset(RowType.Value, Delegate.Value, nullHandling),
-                    _ => Throw.ImpossibleException<Reset>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Reset>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -212,7 +213,7 @@ namespace Cesil
 
             if (method.ReturnType.GetTypeInfo() != Types.Void)
             {
-                return Throw.ArgumentException<Reset>($"{method} does not return void", nameof(method));
+                Throw.ArgumentException($"{method} does not return void", nameof(method));
             }
 
             TypeInfo? rowType;
@@ -239,7 +240,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.ReadContext)
                         {
-                            return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
+                            Throw.ArgumentException($"A {nameof(Reset)} backed by a static method with a single by ref parameter must take `in {nameof(ReadContext)}`, was not `{nameof(ReadContext)}`", nameof(method));
                         }
 
                         rowType = null;
@@ -268,14 +269,15 @@ namespace Cesil
                     var p1 = args[1].ParameterType.GetTypeInfo();
                     if (!args[1].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in {nameof(ReadContext)}` as it's second parameter; {msg}", nameof(method));
+                        Throw.ArgumentException($"A {nameof(Reset)} backed by a static method taking 2 parameters must take `in {nameof(ReadContext)}` as it's second parameter; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Reset>($"{method} is static, it must take 0, 1, or 2 parameters", nameof(method));
+                    Throw.ArgumentException($"{method} is static, it must take 0, 1, or 2 parameters", nameof(method));
+                    return default;
                 }
             }
             else
@@ -293,14 +295,15 @@ namespace Cesil
 
                     if (!args[0].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Reset>($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"A {nameof(Reset)} backed by a instance method taking a single parameter must take `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Reset>($"{method} is an instance method, it must take 0 or 1 parameters", nameof(method));
+                    Throw.ArgumentException($"{method} is an instance method, it must take 0 or 1 parameters", nameof(method));
+                    return default;
                 }
 
                 rowType = method.DeclaringTypeNonNull();
@@ -387,7 +390,7 @@ namespace Cesil
                 {
                     BackingMode.Delegate => reset.Delegate.Value == Delegate.Value,
                     BackingMode.Method => reset.Method.Value == Method.Value,
-                    _ => Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}")
+                    _ => Throw.ImpossibleException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {mode}")
                 };
         }
 
@@ -426,7 +429,8 @@ namespace Cesil
                         return $"{nameof(Reset)} backed by delegate {Delegate} taking {RowType}";
                     }
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -466,7 +470,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.Void)
             {
-                return Throw.InvalidOperationException<Reset>($"Delegate must return void, found {retType}");
+                Throw.InvalidOperationException($"Delegate must return void, found {retType}");
             }
 
             var invoke = delType.GetMethodNonNull("Invoke");
@@ -476,7 +480,7 @@ namespace Cesil
             {
                 if (!args[0].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of one parameter must take an `in {nameof(ReadContext)}`; {msg}");
+                    Throw.InvalidOperationException($"Delegate of one parameter must take an `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticResetDelegate, del, invoke);
@@ -490,7 +494,7 @@ namespace Cesil
 
                 if (!args[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Reset>($"Delegate of two parameters must take an `in {nameof(ReadContext)}` as it's second parameter; {msg}");
+                    Throw.InvalidOperationException($"Delegate of two parameters must take an `in {nameof(ReadContext)}` as it's second parameter; {msg}");
                 }
 
                 var nullability = arg0.DetermineNullability();
@@ -514,7 +518,8 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Reset>("Delegate must take 1 or 2 parameters");
+                Throw.InvalidOperationException("Delegate must take 1 or 2 parameters");
+                return default;
             }
         }
 

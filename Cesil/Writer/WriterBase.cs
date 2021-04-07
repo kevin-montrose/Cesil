@@ -95,7 +95,7 @@ namespace Cesil
                 var carriageReturnIx = Utils.FindChar(chars, 0, '\r');
                 var newLineIx = Utils.FindChar(chars, 0, '\n');
 
-                var separatorIx = Utils.Find(chars, 0, options.ValueSeparator);
+                var separatorIx = chars.IndexOf(options.ValueSeparator);
                 var commentChar = options.CommentCharacter;
                 var commentIx = commentChar != null ? Utils.FindChar(chars, 0, commentChar.Value) : -1;
 
@@ -113,15 +113,14 @@ namespace Cesil
 
                 var offendingText = new string(chars[offendingIx..(offendingIx + take)]);
 
-                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
-                return;
+                Throw.InvalidOperationException($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
             var escapeStartIx = Utils.FindChar(chars, 0, Utils.NonNullValue(escapedValueStartAndEnd));
             if (escapeStartIx == -1) return;
 
-            Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+            Throw.InvalidOperationException($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
         }
 
         internal static void CheckCanEncode(ReadOnlySequence<char> chars, Options options)
@@ -168,15 +167,14 @@ namespace Cesil
 
                 var offendingText = new string(chars.Slice(offendingIx).FirstSpan[0..take]);
 
-                Throw.InvalidOperationException<object>($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
-                return;
+                Throw.InvalidOperationException($"Tried to write a value contain '{offendingText}' which requires escaping a value, but no way to escape a value is configured");
             }
 
             // we're only in trouble if the value contains EscapedValueStartAndStop
             var escapeStartIx = Utils.FindChar(chars, 0, Utils.NonNullValue(escapedValueStartAndEnd));
             if (escapeStartIx == -1) return;
 
-            Throw.InvalidOperationException<object>($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
+            Throw.InvalidOperationException($"Tried to write a value contain '{escapedValueStartAndEnd}' which requires escaping the character in an escaped value, but no way to escape inside an escaped value is configured");
         }
 
         // can't do this in Configuration because we need the _Context_ object

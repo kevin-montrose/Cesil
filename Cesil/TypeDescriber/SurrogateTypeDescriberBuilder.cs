@@ -84,7 +84,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.SurrogateTypeDescriberFallbackBehavior, fallbackBehavior))
             {
-                return Throw.ArgumentException<SurrogateTypeDescriberBuilder>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
+                Throw.ArgumentException($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
             }
 
             Utils.CheckArgumentNull(typeDescriber, nameof(typeDescriber));
@@ -135,7 +135,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.SurrogateTypeDescriberFallbackBehavior, fallbackBehavior))
             {
-                return Throw.ArgumentException<SurrogateTypeDescriberBuilder>($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
+                Throw.ArgumentException($"Unexpected {nameof(SurrogateTypeDescriberFallbackBehavior)}: {fallbackBehavior}", nameof(fallbackBehavior));
             }
 
             FallbackBehavior = fallbackBehavior;
@@ -181,12 +181,12 @@ namespace Cesil
 
             if (forType == surrogateType)
             {
-                return Throw.InvalidOperationException<SurrogateTypeDescriberBuilder>($"Type {forType} cannot be a surrogate for itself");
+                Throw.InvalidOperationException($"Type {forType} cannot be a surrogate for itself");
             }
 
             if (SurrogateTypes.ContainsKey(forType))
             {
-                return Throw.InvalidOperationException<SurrogateTypeDescriberBuilder>($"Surrogate already registered for {forType}");
+                Throw.InvalidOperationException($"Surrogate already registered for {forType}");
             }
 
             SurrogateTypes[forType] = surrogateType;

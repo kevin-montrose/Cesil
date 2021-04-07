@@ -58,7 +58,7 @@ namespace Cesil
                     Length++;
                     break;
                 default:
-                    Throw.ImpossibleException<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -114,7 +114,7 @@ namespace Cesil
                     Length += length;
                     break;
                 default:
-                    Throw.ImpossibleException<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -166,7 +166,7 @@ namespace Cesil
                     CurrentMode = Mode.CopyOnNextAppend;
                     break;
                 default:
-                    Throw.ImpossibleException<object>($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(Mode)}: {CurrentMode}");
                     break;
             }
         }
@@ -193,7 +193,8 @@ namespace Cesil
                     return ReadOnlyMemory<T>.Empty;
 
                 default:
-                    return Throw.ImpossibleException<ReadOnlyMemory<T>>($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(Mode)}: {CurrentMode}");
+                    return default;
             }
         }
 

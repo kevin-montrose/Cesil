@@ -139,22 +139,22 @@ namespace Cesil
         {
             if (beingSerializedType == null)
             {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(beingSerializedType));
+                Throw.ArgumentNullException(nameof(beingSerializedType));
             }
 
             if (name == null)
             {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(name));
+                Throw.ArgumentNullException(nameof(name));
             }
 
             if (getter == null)
             {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(getter));
+                Throw.ArgumentNullException(nameof(getter));
             }
 
             if (formatter == null)
             {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(formatter));
+                Throw.ArgumentNullException(nameof(formatter));
             }
 
             bool emitDefaultValueBool;
@@ -167,14 +167,15 @@ namespace Cesil
                     emitDefaultValueBool = false;
                     break;
                 default:
-                    return Throw.InvalidOperationException<SerializableMember>($"Unexpected {nameof(Cesil.EmitDefaultValue)}: {emitDefault}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(Cesil.EmitDefaultValue)}: {emitDefault}");
+                    return default;
             }
 
             var toSerializeType = getter.Returns;
 
             if (!formatter.Takes.IsAssignableFrom(toSerializeType))
             {
-                return Throw.ArgumentException<SerializableMember>($"The first parameter to {nameof(formatter)} must accept a {toSerializeType}", nameof(formatter));
+                Throw.ArgumentException($"The first parameter to {nameof(formatter)} must accept a {toSerializeType}", nameof(formatter));
             }
 
             CheckShouldSerializeMethod(shouldSerialize, getter.RowType);
@@ -184,66 +185,46 @@ namespace Cesil
 
         internal static SerializableMember ForGeneratedMethod(string name, MethodInfo generated, Getter getter, Formatter formatter, ShouldSerialize? shouldSerialize, bool emitDefaultValue)
         {
-            if (name == null)
-            {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(name));
-            }
-
-            if (generated == null)
-            {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(generated));
-            }
-
-            if(getter == null)
-            {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(getter));
-            }
-
-            if (formatter == null)
-            {
-                return Throw.ArgumentNullException<SerializableMember>(nameof(formatter));
-            }
-
             // ok for shouldSerialize to be null
 
             if (!generated.IsPublic)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should be public, but wasn't");
+                Throw.ArgumentException("Generated method should be public, but wasn't", nameof(generated));
             }
 
             if (!generated.IsStatic)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should be static, but wasn't");
+                Throw.ArgumentException("Generated method should be static, but wasn't", nameof(generated));
             }
 
             if (generated.ReturnType != Types.Bool)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should return bool, but doesn't");
+                Throw.ArgumentException("Generated method should return bool, but doesn't", nameof(generated));
             }
 
             var ps = generated.GetParameters();
             if (ps.Length != 3)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), "Generated method should take 3 parameters, but doesn't");
+                Throw.ArgumentException("Generated method should take 3 parameters, but doesn't", nameof(generated));
             }
 
             var p0 = ps[0].ParameterType.GetTypeInfo();
 
             if (p0 != Types.Object)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's first parameter should be object, but was {p0}");
+                Throw.ArgumentException($"Generated method's first parameter should be object, but was {p0}", nameof(generated));
             }
 
             var p1 = ps[1];
             if (!p1.IsWriteContextByRef(out var error))
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's second parameter should be in WriteContext; {error}");
+                Throw.ArgumentException($"Generated method's second parameter should be in WriteContext; {error}", nameof(generated));
             }
 
             var p2 = ps[2].ParameterType.GetTypeInfo();
             if (p2 != Types.IBufferWriterOfChar)
             {
-                return Throw.ArgumentException<SerializableMember>(nameof(generated), $"Generated method's third parameter should be IBufferWriter<char>, but was {p2}");
+                Throw.ArgumentException($"Generated method's third parameter should be IBufferWriter<char>, but was {p2}", nameof(generated));
             }
 
             return new SerializableMember(name, generated, getter, formatter, shouldSerialize, emitDefaultValue);
@@ -263,7 +244,7 @@ namespace Cesil
 
                 if (!isInstOrSubclass)
                 {
-                    Throw.ArgumentException<object>($"{nameof(shouldSerialize)} must be either static method taking no parameters, a static method taking the type being serialized, an instance method on the type being serialized, or a delegate taking the type being serialized", nameof(shouldSerialize));
+                    Throw.ArgumentException($"{nameof(shouldSerialize)} must be either static method taking no parameters, a static method taking the type being serialized, an instance method on the type being serialized, or a delegate taking the type being serialized", nameof(shouldSerialize));
                 }
             }
         }
@@ -290,14 +271,20 @@ namespace Cesil
 
             if (IsBackedByGeneratedMethod)
             {
-                if (!serializableMember.IsBackedByGeneratedMethod) return false;
+                if (!serializableMember.IsBackedByGeneratedMethod)
+                {
+                    return false;
+                }
 
                 // this is fine because the getter, formatter, and so on are derived from this method
                 return GeneratedMethod.Value == serializableMember.GeneratedMethod.Value;
             }
             else
             {
-                if (serializableMember.IsBackedByGeneratedMethod) return false;
+                if (serializableMember.IsBackedByGeneratedMethod)
+                {
+                    return false;
+                }
             }
 
             if (ShouldSerialize.HasValue)

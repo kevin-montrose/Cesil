@@ -65,7 +65,7 @@ namespace Cesil
 
                     if (index < 0 || index >= Count)
                     {
-                        return Throw.ArgumentOutOfRangeException<(ReadOnlyMemory<char>, int)>(nameof(index), index, Count);
+                        Throw.ArgumentOutOfRangeException(nameof(index), index, Count);
                     }
 
                     var memSpan = Memory.Span;
@@ -113,7 +113,7 @@ namespace Cesil
 
                 if (span.Length < neededChars)
                 {
-                    return Throw.InvalidOperationException<OrdererNames>($"Could not order dynamic member names, names could not fit in memory acquired from MemoryPool: {pool}");
+                    Throw.InvalidOperationException($"Could not order dynamic member names, names could not fit in memory acquired from MemoryPool: {pool}");
                 }
 
                 var lastOffsetIx = 0;
@@ -221,7 +221,7 @@ namespace Cesil
                     else
                     {
                         // exact match found, that's not allowed
-                        return Throw.InvalidOperationException<int>($"Two or more members with same name ({new string(nameSpan)}) encountered");
+                        Throw.InvalidOperationException($"Two or more members with same name ({new string(nameSpan)}) encountered");
                     }
 
                     // have we exhausted our search?

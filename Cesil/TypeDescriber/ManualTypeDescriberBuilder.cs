@@ -87,7 +87,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehavior, fallbackBehavior))
             {
-                return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
+                Throw.ArgumentException($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }
 
             return CreateBuilder(fallbackBehavior, TypeDescribers.Default);
@@ -100,7 +100,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehavior, fallbackBehavior))
             {
-                return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
+                Throw.ArgumentException($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }
 
             Utils.CheckArgumentNull(fallbackTypeDescriber, nameof(fallbackTypeDescriber));
@@ -135,7 +135,9 @@ namespace Cesil
             {
                 case ManualTypeDescriberFallbackBehavior.Throw: throws = true; break;
                 case ManualTypeDescriberFallbackBehavior.UseFallback: throws = false; break;
-                default: return Throw.InvalidOperationException<ManualTypeDescriber>($"Unexpected {nameof(ManualTypeDescriberFallbackBehavior)}: {FallbackBehavior}");
+                default: 
+                    Throw.InvalidOperationException($"Unexpected {nameof(ManualTypeDescriberFallbackBehavior)}: {FallbackBehavior}");
+                    return default;
             }
 
             return new ManualTypeDescriber(throws, FallbackTypeDescriber, builders, serializers, deserializers);
@@ -150,7 +152,7 @@ namespace Cesil
         {
             if (!Enum.IsDefined(Types.ManualTypeDescriberFallbackBehavior, fallbackBehavior))
             {
-                return Throw.ArgumentException<ManualTypeDescriberBuilder>($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
+                Throw.ArgumentException($"Unexpected value: {fallbackBehavior}", nameof(fallbackBehavior));
             }
 
             FallbackBehavior = fallbackBehavior;
@@ -200,12 +202,12 @@ namespace Cesil
             var createdType = instanceProvider.ConstructsType;
             if (!forType.IsAssignableFrom(createdType))
             {
-                return Throw.InvalidOperationException<ManualTypeDescriberBuilder>($"{forType} cannot be assigned from {createdType}, constructed by {instanceProvider}");
+                Throw.InvalidOperationException($"{forType} cannot be assigned from {createdType}, constructed by {instanceProvider}");
             }
 
             if (Builders.ContainsKey(forType))
             {
-                return Throw.InvalidOperationException<ManualTypeDescriberBuilder>($"Instance provider already registered for {forType}");
+                Throw.InvalidOperationException($"Instance provider already registered for {forType}");
             }
 
             Builders[forType] = instanceProvider;
@@ -441,22 +443,22 @@ namespace Cesil
         {
             if (forType == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(forType));
+                Throw.ArgumentNullException(nameof(forType));
             }
 
             if (getter == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(getter));
+                Throw.ArgumentNullException(nameof(getter));
             }
 
             if (name == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(name));
+                Throw.ArgumentNullException(nameof(name));
             }
 
             if (formatter == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(name));
+                Throw.ArgumentNullException(nameof(name));
             }
 
             // shouldSerialize can be null
@@ -480,7 +482,7 @@ namespace Cesil
 
                 if (!isLegal)
                 {
-                    return Throw.InvalidOperationException<ManualTypeDescriberBuilder>($"Provided getter ({getter}) is not on {forType} or one of it's base types.");
+                    Throw.InvalidOperationException($"Provided getter ({getter}) is not on {forType} or one of it's base types.");
                 }
             }
 
@@ -707,22 +709,22 @@ namespace Cesil
         {
             if (forType == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(forType));
+                Throw.ArgumentNullException(nameof(forType));
             }
 
             if (setter == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(setter));
+                Throw.ArgumentNullException(nameof(setter));
             }
 
             if (name == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(name));
+                Throw.ArgumentNullException(nameof(name));
             }
 
             if (parser == null)
             {
-                return Throw.ArgumentNullException<ManualTypeDescriberBuilder>(nameof(parser));
+                Throw.ArgumentNullException(nameof(parser));
             }
 
             var toAdd = DeserializableMember.Create(forType, name, setter, parser, required, reset);
