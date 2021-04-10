@@ -1,12 +1,11 @@
 ﻿namespace Cesil
 {
     /// <summary>
-    /// Which character sequence ends a row.
+    /// Which character sequence will end a row when reading rows.
     /// 
-    /// This can be determined automatically with
-    ///   Detect.
+    /// This can be determined automatically with Detect.
     /// </summary>
-    public enum RowEnding : byte
+    public enum ReadRowEnding : byte
     {
         /// <summary>
         /// The \r character.

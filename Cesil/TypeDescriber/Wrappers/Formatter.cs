@@ -93,7 +93,7 @@ namespace Cesil
                 {
                     BackingMode.Delegate => new Formatter(Takes, Delegate.Value, newFallbacks, takesNullability),
                     BackingMode.Method => new Formatter(Takes, Method.Value, newFallbacks, takesNullability),
-                    _ => Throw.ImpossibleException<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.ImpossibleException_Returns<Formatter>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -151,7 +151,8 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             var ret = selfExp;
@@ -181,7 +182,7 @@ namespace Cesil
                 {
                     BackingMode.Delegate => new Formatter(Takes, Delegate.Value, _Fallbacks, nullHandling),
                     BackingMode.Method => new Formatter(Takes, Method.Value, _Fallbacks, nullHandling),
-                    _ => Throw.ImpossibleException<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Formatter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -195,7 +196,7 @@ namespace Cesil
 
             if (!fallbackFormatter.Takes.IsAssignableFrom(Takes))
             {
-                return Throw.ArgumentException<Formatter>($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
+                Throw.ArgumentException($"{fallbackFormatter} does not take a value assignable from {Takes}, and cannot be used as a fallback for this {nameof(Formatter)}", nameof(fallbackFormatter));
             }
 
             var newValueNullability = Utils.CommonInputNullHandling(TakesNullability, fallbackFormatter.TakesNullability);
@@ -240,19 +241,19 @@ namespace Cesil
 
             if (!method.IsStatic)
             {
-                return Throw.ArgumentException<Formatter>($"{nameof(method)} must be a static method", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must be a static method", nameof(method));
             }
 
             var formatterRetType = method.ReturnType.GetTypeInfo();
             if (formatterRetType != Types.Bool)
             {
-                return Throw.ArgumentException<Formatter>($"{nameof(method)} must return bool", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must return bool", nameof(method));
             }
 
             var args = method.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.ArgumentException<Formatter>($"{nameof(method)} must take 3 parameters", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must take 3 parameters", nameof(method));
             }
 
             var arg0 = args[0];
@@ -261,12 +262,12 @@ namespace Cesil
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
-                return Throw.ArgumentException<Formatter>($"The second parameter to {nameof(method)} must be an `in {nameof(WriteContext)}`; {msg}", nameof(method));
+                Throw.ArgumentException($"The second parameter to {nameof(method)} must be an `in {nameof(WriteContext)}`; {msg}", nameof(method));
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfChar)
             {
-                return Throw.ArgumentException<Formatter>($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
+                Throw.ArgumentException($"The third parameter to {nameof(method)} must be a {nameof(IBufferWriter<char>)}", nameof(method));
             }
 
             return new Formatter(takes, method, ImmutableArray<Formatter>.Empty, takesNullability);
@@ -360,7 +361,7 @@ namespace Cesil
                 {
                     BackingMode.Method => Method.Value == formatter.Method.Value,
                     BackingMode.Delegate => Delegate.Value == formatter.Delegate.Value,
-                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}"),
+                    _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {otherMode}"),
                 };
         }
 
@@ -398,7 +399,8 @@ namespace Cesil
                         return $"{nameof(Formatter)} for {Takes} ({TakesNullability}) backed by delegate {Delegate}";
                     }
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -433,13 +435,13 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.Bool)
             {
-                return Throw.InvalidOperationException<Formatter>($"Delegate must return a bool");
+                Throw.InvalidOperationException($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.InvalidOperationException<Formatter>($"Delegate must take 3 parameters");
+                Throw.InvalidOperationException($"Delegate must take 3 parameters");
             }
 
             var arg0 = args[0];
@@ -448,12 +450,12 @@ namespace Cesil
 
             if (!args[1].IsWriteContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<Formatter>($"The second parameter to the delegate must be an `in {nameof(WriteContext)}`; {msg}");
+                Throw.InvalidOperationException($"The second parameter to the delegate must be an `in {nameof(WriteContext)}`; {msg}");
             }
 
             if (args[2].ParameterType.GetTypeInfo() != Types.IBufferWriterOfChar)
             {
-                return Throw.InvalidOperationException<Formatter>($"The third parameter to the delegate must be a {nameof(IBufferWriter<char>)}");
+                Throw.InvalidOperationException($"The third parameter to the delegate must be a {nameof(IBufferWriter<char>)}");
             }
 
             var formatterDel = Types.FormatterDelegate.MakeGenericType(takes);

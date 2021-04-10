@@ -82,7 +82,7 @@ namespace Cesil
                 var needsLeadingTrim = WhitespaceTreatment.HasFlag(WhitespaceTreatments.TrimLeadingInValues);
                 if (needsLeadingTrim)
                 {
-                    rawHeader = Utils.TrimLeadingWhitespace(rawHeader);
+                    rawHeader = rawHeader.TrimStart();
                 }
 
                 // We need to trim trailing IN values if requested, and we need to trim trailing after values
@@ -96,7 +96,7 @@ namespace Cesil
 
                 if (needsTrailingTrim)
                 {
-                    rawHeader = Utils.TrimTrailingWhitespace(rawHeader);
+                    rawHeader = rawHeader.TrimEnd();
                 }
 
                 _Current = rawHeader;
@@ -175,7 +175,7 @@ namespace Cesil
             CharacterLookup charLookup,
             IReaderAdapter inner,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         : this(stateMachine, config, charLookup, inner, null, buffer, rowEndingOverride) { }
 
@@ -185,7 +185,7 @@ namespace Cesil
             CharacterLookup charLookup,
             IAsyncReaderAdapter inner,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         : this(stateMachine, config, charLookup, null, inner, buffer, rowEndingOverride) { }
 
@@ -196,7 +196,7 @@ namespace Cesil
             IReaderAdapter? inner,
             IAsyncReaderAdapter? innerAsync,
             BufferWithPushback buffer,
-            RowEnding rowEndingOverride
+            ReadRowEnding rowEndingOverride
         )
         {
             LogHelper.StateTransition_NewHeadersReader();
@@ -233,30 +233,27 @@ namespace Cesil
 
         internal (HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack) Read()
         {
-            using (StateMachine.Pin())
+            var madeProgress = true;
+            while (true)
             {
-                var madeProgress = true;
-                while (true)
+                var available = Buffer.Read(Inner.Value, madeProgress);
+                if (available == 0)
                 {
-                    var available = Buffer.Read(Inner.Value, madeProgress);
-                    if (available == 0)
+                    if (BuilderBacking.Length > 0)
                     {
-                        if (BuilderBacking.Length > 0)
-                        {
-                            var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
-                            PushPendingCharactersToValue(inEscapedValue);
-                        }
-                        break;
+                        var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
+                        PushPendingCharactersToValue(inEscapedValue);
                     }
-                    else
-                    {
-                        AddToPushback(Buffer.Buffer.Span.Slice(0, available));
-                    }
+                    break;
+                }
+                else
+                {
+                    AddToPushback(Buffer.Buffer.Span.Slice(0, available));
+                }
 
-                    if (AdvanceWork(available, out madeProgress))
-                    {
-                        break;
-                    }
+                if (AdvanceWork(available, out madeProgress))
+                {
+                    break;
                 }
             }
 
@@ -285,7 +282,7 @@ namespace Cesil
 
             if (PushBackLength + c.Length > pushBackOwnerValue.Memory.Length)
             {
-                Throw.InvalidOperationException<object>($"Could not allocate large enough buffer to read headers");
+                Throw.InvalidOperationException($"Could not allocate large enough buffer to read headers");
             }
 
             c.CopyTo(PushBack.Span.Slice(PushBackLength));
@@ -294,47 +291,33 @@ namespace Cesil
 
         internal ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync(CancellationToken cancellationToken)
         {
-            var handle = StateMachine.Pin();
-            var disposeHandle = true;
-
-            try
+            var madeProgress = true;
+            while (true)
             {
-                var madeProgress = true;
-                while (true)
+                var availableTask = Buffer.ReadAsync(InnerAsync.Value, madeProgress, cancellationToken);
+                if (!availableTask.IsCompletedSuccessfully(this))
                 {
-                    var availableTask = Buffer.ReadAsync(InnerAsync.Value, madeProgress, cancellationToken);
-                    if (!availableTask.IsCompletedSuccessfully(this))
-                    {
-                        disposeHandle = false;
-                        return ReadAsync_ContinueAfterReadAsync(this, availableTask, handle, cancellationToken);
-                    }
-
-                    var available = availableTask.Result;
-                    if (available == 0)
-                    {
-                        if (BuilderBacking.Length > 0)
-                        {
-                            var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
-                            PushPendingCharactersToValue(inEscapedValue);
-                        }
-                        break;
-                    }
-                    else
-                    {
-                        AddToPushback(Buffer.Buffer.Span.Slice(0, available));
-                    }
-
-                    if (AdvanceWork(available, out madeProgress))
-                    {
-                        break;
-                    }
+                    return ReadAsync_ContinueAfterReadAsync(this, availableTask, cancellationToken);
                 }
-            }
-            finally
-            {
-                if (disposeHandle)
+
+                var available = availableTask.Result;
+                if (available == 0)
                 {
-                    handle.Dispose();
+                    if (BuilderBacking.Length > 0)
+                    {
+                        var inEscapedValue = ReaderStateMachine.IsInEscapedValue(StateMachine.CurrentState);
+                        PushPendingCharactersToValue(inEscapedValue);
+                    }
+                    break;
+                }
+                else
+                {
+                    AddToPushback(Buffer.Buffer.Span.Slice(0, available));
+                }
+
+                if (AdvanceWork(available, out madeProgress))
+                {
+                    break;
                 }
             }
 
@@ -344,20 +327,44 @@ namespace Cesil
             static async ValueTask<(HeaderEnumerator Headers, bool IsHeader, Memory<char> PushBack)> ReadAsync_ContinueAfterReadAsync(
                 HeadersReader<T> self,
                 ValueTask<int> waitFor,
-                ReaderStateMachine.PinHandle handle,
                 CancellationToken cancellationToken)
             {
-                using (handle)
-                {
-                    bool madeProgress;
+                bool madeProgress;
 
-                    int available;
-                    self.StateMachine.ReleasePinForAsync(waitFor);
+                int available;
+                {
+                    available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                }
+
+                // handle the in flight task
+                if (available == 0)
+                {
+                    if (self.BuilderBacking.Length > 0)
                     {
-                        available = await ConfigureCancellableAwait(self, waitFor, cancellationToken);
+                        var inEscapedValue = ReaderStateMachine.IsInEscapedValue(self.StateMachine.CurrentState);
+                        self.PushPendingCharactersToValue(inEscapedValue);
                     }
 
-                    // handle the in flight task
+                    return self.IsHeaderResult();
+                }
+                else
+                {
+                    self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
+                }
+
+                if (self.AdvanceWork(available, out madeProgress))
+                {
+                    return self.IsHeaderResult();
+                }
+
+                // go back into the loop
+                while (true)
+                {
+                    var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, madeProgress, cancellationToken);
+                    {
+                        available = await ConfigureCancellableAwait(self, readTask, cancellationToken);
+                    }
+
                     if (available == 0)
                     {
                         if (self.BuilderBacking.Length > 0)
@@ -365,8 +372,7 @@ namespace Cesil
                             var inEscapedValue = ReaderStateMachine.IsInEscapedValue(self.StateMachine.CurrentState);
                             self.PushPendingCharactersToValue(inEscapedValue);
                         }
-
-                        return self.IsHeaderResult();
+                        break;
                     }
                     else
                     {
@@ -375,40 +381,11 @@ namespace Cesil
 
                     if (self.AdvanceWork(available, out madeProgress))
                     {
-                        return self.IsHeaderResult();
+                        break;
                     }
-
-                    // go back into the loop
-                    while (true)
-                    {
-                        var readTask = self.Buffer.ReadAsync(self.InnerAsync.Value, madeProgress, cancellationToken);
-                        self.StateMachine.ReleasePinForAsync(readTask);
-                        {
-                            available = await ConfigureCancellableAwait(self, readTask, cancellationToken);
-                        }
-
-                        if (available == 0)
-                        {
-                            if (self.BuilderBacking.Length > 0)
-                            {
-                                var inEscapedValue = ReaderStateMachine.IsInEscapedValue(self.StateMachine.CurrentState);
-                                self.PushPendingCharactersToValue(inEscapedValue);
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            self.AddToPushback(self.Buffer.Buffer.Span.Slice(0, available));
-                        }
-
-                        if (self.AdvanceWork(available, out madeProgress))
-                        {
-                            break;
-                        }
-                    }
-
-                    return self.IsHeaderResult();
                 }
+
+                return self.IsHeaderResult();
             }
         }
 
@@ -452,8 +429,6 @@ finish:
 
         private bool ProcessBuffer(int bufferLen, out int unprocessedCharacters)
         {
-            StateMachine.EnsurePinned();
-
             var buffSpan = Buffer.Buffer.Span;
 
             var appendingSince = -1;
@@ -586,29 +561,37 @@ finish:
 
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecord:
                         unprocessedCharacters = default;
-                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' when expecting end of record");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting end of record");
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_InvalidState:
                         unprocessedCharacters = default;
-                        return Throw.InvalidOperationException<bool>($"Internal state machine is in an invalid state due to a previous error");
+                        Throw.InvalidOperationException($"Internal state machine is in an invalid state due to a previous error");
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_StartEscapeInValue:
                         unprocessedCharacters = default;
-                        return Throw.InvalidOperationException<bool>($"Encountered '{c}', starting an escaped value, when already in a value");
+                        Throw.InvalidOperationException($"Encountered '{c}', starting an escaped value, when already in a value");
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedCharacterInEscapeSequence:
                         unprocessedCharacters = default;
-                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' in an escape sequence, which is invalid");
+                        Throw.InvalidOperationException($"Encountered '{c}' in an escape sequence, which is invalid");
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedLineEnding:
                         unprocessedCharacters = default;
-                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(RowEnding)} value encountered", Configuration);
+                        Throw.ImpossibleException($"Unexpected {nameof(ReadRowEnding)} value encountered", Configuration);
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_UnexpectedState:
                         unprocessedCharacters = default;
-                        return Throw.ImpossibleException<bool, T>($"Unexpected state value entered", Configuration);
+                        Throw.ImpossibleException($"Unexpected state value entered", Configuration);
+                        return default;
                     case ReaderStateMachine.AdvanceResult.Exception_ExpectedEndOfRecordOrValue:
                         unprocessedCharacters = default;
-                        return Throw.InvalidOperationException<bool>($"Encountered '{c}' when expecting the end of a record or value");
+                        Throw.InvalidOperationException($"Encountered '{c}' when expecting the end of a record or value");
+                        return default;
 
                     default:
                         unprocessedCharacters = default;
-                        return Throw.ImpossibleException<bool, T>($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration);
+                        Throw.ImpossibleException($"Unexpected {nameof(ReaderStateMachine.AdvanceResult)}: {res}", Configuration);
+                        return default;
                 }
 
                 i += advanceIBy;

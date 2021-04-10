@@ -122,7 +122,7 @@ namespace Cesil
 
             if (index < 0 || index >= Length)
             {
-                return Throw.ArgumentOutOfRangeException<ReadOnlyMemory<char>>(nameof(index), index, Length);
+                Throw.ArgumentOutOfRangeException(nameof(index), index, Length);
             }
 
             var memSpan = Memory.Span;
@@ -150,7 +150,7 @@ namespace Cesil
 
             if (index < 0 || index >= Length)
             {
-                return Throw.ArgumentOutOfRangeException<ReadOnlyMemory<char>>(nameof(index), index, Length);
+                Throw.ArgumentOutOfRangeException(nameof(index), index, Length);
             }
 
             var memSpan = Memory.Span;

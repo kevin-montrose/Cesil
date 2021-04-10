@@ -17,6 +17,137 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
+        record _Records1(int A, string B);
+        record _Records2(int A)
+        {
+            public string B { get; set; }
+        }
+        record _Records3(int C) : _Records1(C * 2, C.ToString()+"!") { }
+
+        [Fact]
+        public void Records()
+        {
+            RunSyncWriterVariants<_Records1>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _Records1(1, "foo"));
+                        csv.Write(new _Records1(2, "bar"));
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("A,B\r\n1,foo\r\n2,bar", str);
+                }
+            );
+
+            RunSyncWriterVariants<_Records2>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _Records2(1) { B = "foo" });
+                        csv.Write(new _Records2(2) { B = "bar" });
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("A,B\r\n1,foo\r\n2,bar", str);
+                }
+            );
+
+            RunSyncWriterVariants<_Records3>(
+                Options.Default,
+                (config, getWriter, getStr) =>
+                {
+                    using (var writer = getWriter())
+                    using (var csv = config.CreateWriter(writer))
+                    {
+                        csv.Write(new _Records3(1));
+                        csv.Write(new _Records3(2));
+                    }
+
+                    var str = getStr();
+                    Assert.Equal("A,B,C\r\n2,1!,1\r\n4,2!,2", str);
+                }
+            );
+        }
+
+        private class _WriteRowEndings
+        {
+            public string A { get; set; }
+        }
+
+        [Fact]
+        public void WriteRowEndings()
+        {
+            // \r\n
+            {
+                var opts= Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
+
+                RunSyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using(var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _WriteRowEndings { A = "foo" });
+                            csv.Write(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\r\nfoo\r\nbar", txt);
+                    }
+                );
+            }
+
+            // \r
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
+
+                RunSyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _WriteRowEndings { A = "foo" });
+                            csv.Write(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\rfoo\rbar", txt);
+                    }
+                );
+            }
+
+            // \n
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
+
+                RunSyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    (config, getWriter, getStr) =>
+                    {
+                        using (var writer = getWriter())
+                        using (var csv = config.CreateWriter(writer))
+                        {
+                            csv.Write(new _WriteRowEndings { A = "foo" });
+                            csv.Write(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = getStr();
+                        Assert.Equal("A\nfoo\nbar", txt);
+                    }
+                );
+            }
+        }
+
         [Fact]
         public void NullHandlingViolations()
         {
@@ -2043,7 +2174,9 @@ namespace Cesil.Tests
             var pipe = new Pipe();
 
             var config = Configuration.For<_BufferWriterByte>();
+#pragma warning disable SYSLIB0001 // UTF7 is garbage, but keep the test
             using (var writer = config.CreateWriter(pipe.Writer, Encoding.UTF7))
+#pragma warning restore SYSLIB0001
             {
                 writer.Write(new _BufferWriterByte { Foo = "hello", Bar = "world" });
             }
@@ -2065,7 +2198,9 @@ namespace Cesil.Tests
                 }
             }
 
+#pragma warning disable SYSLIB0001 // UTF7 is garbage, but keep the test
             var str = Encoding.UTF7.GetString(bytes.ToArray());
+#pragma warning restore SYSLIB0001
 
             Assert.Equal("Foo,Bar\r\nhello,world", str);
         }
@@ -2345,6 +2480,12 @@ namespace Cesil.Tests
             }
         }
 
+        public static bool _SerializableMemberEquality1(object row, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
+        public static bool _SerializableMemberEquality2(object row, in WriteContext ctx, IBufferWriter<char> buffer)
+        => false;
+
         [Fact]
         public void SerializableMemberEquality()
         {
@@ -2391,6 +2532,16 @@ namespace Cesil.Tests
                 }
             }
 
+            // add some "generated" members
+            {
+                var m1 = t.GetMethod(nameof(_SerializableMemberEquality1), BindingFlags.Public | BindingFlags.Static);
+                Assert.NotNull(m1);
+                var m2 = t.GetMethod(nameof(_SerializableMemberEquality2), BindingFlags.Public | BindingFlags.Static);
+                Assert.NotNull(m2);
+                members.Add(SerializableMember.ForGeneratedMethod("generated", m1, getters.ElementAt(0), formatters.ElementAt(0), null, true));
+                members.Add(SerializableMember.ForGeneratedMethod("generated", m2, getters.ElementAt(0), formatters.ElementAt(0), null, true));
+            }
+
             var notSerializableMember = "";
 
             for (var i = 0; i < members.Count; i++)
@@ -2399,7 +2550,7 @@ namespace Cesil.Tests
 
                 Assert.False(m1.Equals(notSerializableMember));
 
-                for (var j = i; j < members.Count; j++)
+                for (var j = 0; j < members.Count; j++)
                 {
 
                     var m2 = members[j];
@@ -2407,6 +2558,7 @@ namespace Cesil.Tests
                     var eq = m1 == m2;
                     var neq = m1 != m2;
                     var hashEq = m1.GetHashCode() == m2.GetHashCode();
+                    var typedEq = m1.Equals(m2);
                     var objEq = m1.Equals((object)m2);
 
                     if (i == j)
@@ -2414,12 +2566,14 @@ namespace Cesil.Tests
                         Assert.True(eq);
                         Assert.False(neq);
                         Assert.True(hashEq);
+                        Assert.True(typedEq);
                         Assert.True(objEq);
                     }
                     else
                     {
                         Assert.False(eq);
                         Assert.True(neq);
+                        Assert.False(typedEq);
                         Assert.False(objEq);
                     }
                 }
@@ -3803,7 +3957,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -3836,7 +3990,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -3869,7 +4023,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_CommentEscape>(
                     opts,
@@ -3913,7 +4067,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -3933,7 +4087,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -3953,7 +4107,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -3977,7 +4131,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -3998,7 +4152,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -4019,7 +4173,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Simple>(
                     opts,
@@ -4072,7 +4226,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncWriterVariants<_WriteAll>(
                     opts,
@@ -4099,7 +4253,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 RunSyncWriterVariants<_WriteAll>(
                     opts,
@@ -4126,7 +4280,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 RunSyncWriterVariants<_WriteAll>(
                     opts,
@@ -4163,7 +4317,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Headers>(
                     opts,
@@ -4197,7 +4351,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 RunSyncWriterVariants<_Headers>(
                     opts,
@@ -4231,7 +4385,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 RunSyncWriterVariants<_Headers>(
                     opts,
@@ -4281,7 +4435,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -4315,7 +4469,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -4349,7 +4503,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -4407,7 +4561,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -4440,7 +4594,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -4473,7 +4627,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 RunSyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -4731,6 +4885,127 @@ namespace Cesil.Tests
 
                     var txt = getString();
                     Assert.Equal("1,,None,1970-01-01 00:00:00Z\r\n,Fizz,,", txt);
+                }
+            );
+        }
+
+        // async tests
+
+        [Fact]
+        public async Task WriteRowEndingsAsync()
+        {
+            // \r\n
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
+
+                await RunAsyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _WriteRowEndings { A = "foo" });
+                            await csv.WriteAsync(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\r\nfoo\r\nbar", txt);
+                    }
+                );
+            }
+
+            // \r
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
+
+                await RunAsyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _WriteRowEndings { A = "foo" });
+                            await csv.WriteAsync(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\rfoo\rbar", txt);
+                    }
+                );
+            }
+
+            // \n
+            {
+                var opts = Options.CreateBuilder(Options.Default).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
+
+                await RunAsyncWriterVariants<_WriteRowEndings>(
+                    opts,
+                    async (config, getWriter, getStr) =>
+                    {
+                        await using (var writer = getWriter())
+                        await using (var csv = config.CreateAsyncWriter(writer))
+                        {
+                            await csv.WriteAsync(new _WriteRowEndings { A = "foo" });
+                            await csv.WriteAsync(new _WriteRowEndings { A = "bar" });
+                        }
+
+                        var txt = await getStr();
+                        Assert.Equal("A\nfoo\nbar", txt);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task RecordsAsync()
+        {
+            await RunAsyncWriterVariants<_Records1>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _Records1(1, "foo"));
+                        await csv.WriteAsync(new _Records1(2, "bar"));
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("A,B\r\n1,foo\r\n2,bar", str);
+                }
+            );
+
+            await RunAsyncWriterVariants<_Records2>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _Records2(1) { B = "foo" });
+                        await csv.WriteAsync(new _Records2(2) { B = "bar" });
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("A,B\r\n1,foo\r\n2,bar", str);
+                }
+            );
+
+            await RunAsyncWriterVariants<_Records3>(
+                Options.Default,
+                async (config, getWriter, getStr) =>
+                {
+                    await using (var writer = getWriter())
+                    await using (var csv = config.CreateAsyncWriter(writer))
+                    {
+                        await csv.WriteAsync(new _Records3(1));
+                        await csv.WriteAsync(new _Records3(2));
+                    }
+
+                    var str = await getStr();
+                    Assert.Equal("A,B,C\r\n2,1!,1\r\n4,2!,2", str);
                 }
             );
         }
@@ -6361,7 +6636,9 @@ namespace Cesil.Tests
             var pipe = new Pipe();
 
             var config = Configuration.For<_PipeWriterAsync>();
+#pragma warning disable SYSLIB0001 // UTF7 is garbage, but keep the test
             await using (var csv = config.CreateAsyncWriter(pipe.Writer, Encoding.UTF7))
+#pragma warning restore SYSLIB0001
             {
                 await csv.WriteAsync(new _PipeWriterAsync { Fizz = "hello", Buzz = 12345 });
             }
@@ -6383,7 +6660,9 @@ namespace Cesil.Tests
                 }
             }
 
+#pragma warning disable SYSLIB0001 // UTF7 is garbage, but keep the test
             var str = Encoding.UTF7.GetString(bytes.ToArray());
+#pragma warning restore SYSLIB0001
 
             Assert.Equal("Fizz,Buzz\r\nhello,12345", str);
         }
@@ -7529,7 +7808,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -7562,7 +7841,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -7595,7 +7874,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).WithCommentCharacter('#').WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_CommentEscape>(
                     opts,
@@ -7632,7 +7911,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -7666,7 +7945,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -7700,7 +7979,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeHeaders>(
                     opts,
@@ -7738,7 +8017,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Headers>(
                     opts,
@@ -7772,7 +8051,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncWriterVariants<_Headers>(
                     opts,
@@ -7806,7 +8085,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Headers>(
                     opts,
@@ -7898,7 +8177,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -7919,7 +8198,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -7940,7 +8219,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -8045,7 +8324,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -8065,7 +8344,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -8085,7 +8364,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Never).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncWriterVariants<_Simple>(
                     opts,
@@ -8109,7 +8388,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_WriteAll>(
                     opts,
@@ -8136,7 +8415,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).ToOptions();
 
                 await RunAsyncWriterVariants<_WriteAll>(
                     opts,
@@ -8163,7 +8442,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_WriteAll>(
                     opts,
@@ -8203,7 +8482,7 @@ namespace Cesil.Tests
 
             // enumerable is sync
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
 
                 await RunAsyncWriterVariants<_WriteAll>(
                     opts,
@@ -8222,7 +8501,7 @@ namespace Cesil.Tests
 
             // enumerable is async
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).ToOptions();
                 var enumerable = new TestAsyncEnumerable<_WriteAll>(rows, true);
 
                 await RunAsyncWriterVariants<_WriteAll>(
@@ -8273,7 +8552,7 @@ namespace Cesil.Tests
         {
             // \r\n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturnLineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -8306,7 +8585,7 @@ namespace Cesil.Tests
 
             // \r
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.CarriageReturn).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,
@@ -8339,7 +8618,7 @@ namespace Cesil.Tests
 
             // \n
             {
-                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithRowEnding(RowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
+                var opts = Options.CreateBuilder(Options.Default).WithWriteHeader(WriteHeader.Always).WithWriteRowEnding(WriteRowEnding.LineFeed).WithWriteTrailingRowEnding(WriteTrailingRowEnding.Always).ToOptions();
 
                 await RunAsyncWriterVariants<_EscapeLargeHeaders>(
                     opts,

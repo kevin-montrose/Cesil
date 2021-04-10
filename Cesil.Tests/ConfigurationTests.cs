@@ -224,10 +224,10 @@ namespace Cesil.Tests
                     .WithWhitespaceTreatment(WhitespaceTreatments.Trim)
                     .ToOptions();
 
-            using (var c = CharacterLookup.MakeCharacterLookup(cOpts, MemoryPool<char>.Shared, out var maxSize1))
-            using (var d = CharacterLookup.MakeCharacterLookup(dOpts, MemoryPool<char>.Shared, out var maxSize2))
-            using (var e = CharacterLookup.MakeCharacterLookup(eOpts, MemoryPool<char>.Shared, out var maxSize3))
-            using (var f = CharacterLookup.MakeCharacterLookup(fOpts, MemoryPool<char>.Shared, out var maxSize4))
+            var c = CharacterLookup.MakeCharacterLookup(cOpts, out var maxSize1);
+            var d = CharacterLookup.MakeCharacterLookup(dOpts, out var maxSize2);
+            var e = CharacterLookup.MakeCharacterLookup(eOpts, out var maxSize3);
+            var f = CharacterLookup.MakeCharacterLookup(fOpts, out var maxSize4);
             {
                 for (var x = 0; x <= char.MaxValue; x++)
                 {
@@ -290,35 +290,37 @@ namespace Cesil.Tests
                             foreach (var memPool in new[] { MemoryPoolProviders.Default, new _OptionsEquality_MemoryPoolProvider() })
                                 foreach (var readHint in new[] { 1, 10 })
                                     foreach (var rh in new[] { ReadHeader.Always, ReadHeader.Never })
-                                        foreach (var re in new[] { RowEnding.CarriageReturn, RowEnding.Detect })
+                                        foreach (var rre in new[] { ReadRowEnding.CarriageReturn, ReadRowEnding.Detect })
                                             foreach (var typeDesc in new ITypeDescriber[] { TypeDescribers.Default, ManualTypeDescriberBuilder.CreateBuilder().ToManualTypeDescriber() })
                                                 foreach (var valSepChar in new char[] { ',', ';' })
                                                     foreach (var writeHint in new int?[] { null, 10 })
                                                         foreach (var wh in new[] { WriteHeader.Always, WriteHeader.Never })
                                                             foreach (var wt in new[] { WriteTrailingRowEnding.Always, WriteTrailingRowEnding.Never })
                                                                 foreach (var ect in new[] { ExtraColumnTreatment.Ignore, ExtraColumnTreatment.ThrowException })
-                                                                {
-                                                                    var builder = OptionsBuilder.CreateBuilder();
-                                                                    var opt =
-                                                                        builder
-                                                                            .WithCommentCharacter(commentChar)
-                                                                            .WithDynamicRowDisposal(drd)
-                                                                            .WithEscapedValueEscapeCharacter(escapeChar)
-                                                                            .WithEscapedValueStartAndEnd(escapeStartChar)
-                                                                            .WithMemoryPoolProvider(memPool)
-                                                                            .WithReadBufferSizeHint(readHint)
-                                                                            .WithReadHeader(rh)
-                                                                            .WithRowEnding(re)
-                                                                            .WithTypeDescriber(typeDesc)
-                                                                            .WithValueSeparator(valSepChar.ToString())
-                                                                            .WithWriteBufferSizeHint(writeHint)
-                                                                            .WithWriteHeader(wh)
-                                                                            .WithWriteTrailingRowEnding(wt)
-                                                                            .WithExtraColumnTreatment(ect)
-                                                                            .ToOptions();
+                                                                    foreach (var wre in new[] { WriteRowEnding.CarriageReturn, WriteRowEnding.LineFeed })
+                                                                    {
+                                                                        var builder = OptionsBuilder.CreateBuilder();
+                                                                        var opt =
+                                                                            builder
+                                                                                .WithCommentCharacter(commentChar)
+                                                                                .WithDynamicRowDisposal(drd)
+                                                                                .WithEscapedValueEscapeCharacter(escapeChar)
+                                                                                .WithEscapedValueStartAndEnd(escapeStartChar)
+                                                                                .WithMemoryPoolProvider(memPool)
+                                                                                .WithReadBufferSizeHint(readHint)
+                                                                                .WithReadHeader(rh)
+                                                                                .WithReadRowEnding(rre)
+                                                                                .WithTypeDescriber(typeDesc)
+                                                                                .WithValueSeparator(valSepChar.ToString())
+                                                                                .WithWriteBufferSizeHint(writeHint)
+                                                                                .WithWriteHeader(wh)
+                                                                                .WithWriteTrailingRowEnding(wt)
+                                                                                .WithExtraColumnTreatment(ect)
+                                                                                .WithWriteRowEnding(wre)
+                                                                                .ToOptions();
 
-                                                                    opts.Add(opt);
-                                                                }
+                                                                        opts.Add(opt);
+                                                                    }
 
             for (var i = 0; i < opts.Count; i++)
             {
@@ -485,8 +487,8 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithEscapedValueStartAndEnd(',').WithCommentCharacter(',').ToOptions());
 
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithRowEndingInternal(default).ToOptions());
-            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithRowEndingInternal((RowEnding)99).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadRowEndingInternal(default).ToOptions());
+            Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadRowEndingInternal((ReadRowEnding)99).ToOptions());
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadHeaderInternal(default).ToOptions());
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithReadHeaderInternal((ReadHeader)99).ToOptions());
@@ -497,7 +499,7 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(
                 () =>
                     Options.CreateBuilder().WithValueSeparator(','.ToString())
-                    .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                    .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
                     .WithReadHeader(ReadHeader.Detect)
@@ -517,7 +519,7 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(
                 () =>
                     Options.CreateBuilder().WithValueSeparator(','.ToString())
-                    .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                    .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                     .WithEscapedValueStartAndEnd('"')
                     .WithEscapedValueEscapeCharacter('"')
                     .WithReadHeader(ReadHeader.Detect)
@@ -540,7 +542,7 @@ namespace Cesil.Tests
 
             Assert.Throws<InvalidOperationException>(() => Options.CreateBuilder(Options.Default).WithCommentCharacter('"').ToOptions());
 
-            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithRowEnding(default));
+            Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithReadRowEnding(default));
 
             Assert.Throws<ArgumentException>(() => Options.CreateBuilder(Options.Default).WithReadHeader(default));
 
@@ -613,72 +615,72 @@ namespace Cesil.Tests
 
             // \r clashing
             {
-                Options.CreateBuilder(Options.Default).WithValueSeparator("\r").WithRowEnding(RowEnding.LineFeed).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\r").WithReadRowEnding(ReadRowEnding.LineFeed).ToOptions();
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r")
-                            .WithRowEnding(RowEnding.CarriageReturn)
+                            .WithReadRowEnding(ReadRowEnding.CarriageReturn)
                             .ToOptions()
                 );
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r")
-                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                             .ToOptions()
                 );
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r")
-                            .WithRowEnding(RowEnding.Detect)
+                            .WithReadRowEnding(ReadRowEnding.Detect)
                             .ToOptions()
                 );
             }
 
             // \n clashing
             {
-                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturn).ToOptions();
-                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithReadRowEnding(ReadRowEnding.CarriageReturn).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\n")
-                            .WithRowEnding(RowEnding.LineFeed)
+                            .WithReadRowEnding(ReadRowEnding.LineFeed)
                             .ToOptions()
                 );
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\n")
-                            .WithRowEnding(RowEnding.Detect)
+                            .WithReadRowEnding(ReadRowEnding.Detect)
                             .ToOptions()
                 );
             }
 
             // \r\n clashing
             {
-                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithRowEnding(RowEnding.CarriageReturnLineFeed).ToOptions();
+                Options.CreateBuilder(Options.Default).WithValueSeparator("\n").WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed).ToOptions();
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r\n")
-                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                             .ToOptions()
                 );
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r")
-                            .WithRowEnding(RowEnding.CarriageReturnLineFeed)
+                            .WithReadRowEnding(ReadRowEnding.CarriageReturnLineFeed)
                             .ToOptions()
                 );
                 Assert.Throws<InvalidOperationException>(
                     () =>
                         Options.CreateBuilder(Options.Default)
                             .WithValueSeparator("\r\n")
-                            .WithRowEnding(RowEnding.Detect)
+                            .WithReadRowEnding(ReadRowEnding.Detect)
                             .ToOptions()
                 );
             }
@@ -726,28 +728,6 @@ namespace Cesil.Tests
                 Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(default(IBufferWriter<char>)));
                 Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(null, Encoding.UTF8));
                 Assert.Throws<ArgumentNullException>(() => defaultConfig.CreateWriter(new Pipe().Writer, null));
-            }
-        }
-
-        [Fact]
-        public void RowEndingDetectWhileWriting()
-        {
-            // concrete
-            {
-                var detectOpts = Options.CreateBuilder(Options.Default).WithRowEnding(RowEnding.Detect).ToOptions();
-                var detectConfig = Configuration.For<_BadCreateCalls>(detectOpts);
-
-                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateWriter(TextWriter.Null));
-                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateAsyncWriter(TextWriter.Null));
-            }
-
-            // dynamic
-            {
-                var detectOpts = Options.CreateBuilder(Options.DynamicDefault).WithRowEnding(RowEnding.Detect).ToOptions();
-                var detectConfig = Configuration.ForDynamic(detectOpts);
-
-                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateWriter(TextWriter.Null));
-                Assert.Throws<InvalidOperationException>(() => detectConfig.CreateAsyncWriter(TextWriter.Null));
             }
         }
     }

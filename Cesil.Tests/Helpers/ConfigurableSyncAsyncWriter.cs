@@ -211,9 +211,6 @@ namespace Cesil.Tests
         }
 
 
-        public override object InitializeLifetimeService()
-        => throw new NotImplementedException();
-
         public override void Write(bool value)
         => throw new NotImplementedException();
 

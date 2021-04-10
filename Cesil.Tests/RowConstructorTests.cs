@@ -45,7 +45,7 @@ namespace Cesil.Tests
 
             using (var str = new StringReader(string.Join(",", colsNames)))
             {
-                using var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, config.MemoryPool, out _);
+                var charLookup = CharacterLookup.MakeCharacterLookup(config.Options, out _);
                 using var reader =
                     new HeadersReader<object>(
                         new ReaderStateMachine(),
@@ -53,7 +53,7 @@ namespace Cesil.Tests
                         charLookup,
                         new TextReaderAdapter(str),
                         buffer,
-                        config.Options.RowEnding
+                        config.Options.ReadRowEnding
                     );
                 var res = reader.Read();
 
@@ -779,8 +779,8 @@ namespace Cesil.Tests
 
             var buffer = new BufferWithPushback(MemoryPool<char>.Shared, 500);
 
-            var charLookup = CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _);
-            var reader = new HeadersReader<T>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), buffer, RowEnding.CarriageReturnLineFeed);
+            var charLookup = CharacterLookup.MakeCharacterLookup(Options.Default, out _);
+            var reader = new HeadersReader<T>(new ReaderStateMachine(), config, charLookup, new TextReaderAdapter(str), buffer, ReadRowEnding.CarriageReturnLineFeed);
 
             var res = reader.Read();
             return res.Headers;

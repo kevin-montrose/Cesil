@@ -44,10 +44,14 @@ namespace Cesil
 
             var retType = binder.ReturnType != Types.Void ? binder.ReturnType : Types.Object;
 
-            var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+            var invalidOpCall = Methods.Throw.InvalidOperationException;
             var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Dynamic cells have no methods.  Explicitly cast to desired type or IConvertible."));
 
-            return new DynamicMetaObject(throwMsg, expressionIsCellRestriction);
+            var returnDefault = Expression.Default(retType);
+
+            var block = Expression.Block(throwMsg, returnDefault);
+
+            return new DynamicMetaObject(block, expressionIsCellRestriction);
         }
 
         public override DynamicMetaObject BindConvert(ConvertBinder binder)
@@ -69,18 +73,22 @@ namespace Cesil
 
             if (parser == null)
             {
-                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"No cell converter discovered for {binder.ReturnType}"));
 
-                return new DynamicMetaObject(throwMsg, restrictions);
+                var throwBlock = Expression.Block(throwMsg, Expression.Default(retType));
+
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
 
             if (!binder.ReturnType.IsAssignableFrom(parser.Creates))
             {
-                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Cell converter {parser} does not create a type assignable to {binder.ReturnType}, returns {parser.Creates}"));
 
-                return new DynamicMetaObject(throwMsg, restrictions);
+                var throwBlock = Expression.Block(throwMsg, Expression.Default(retType));
+
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
 
             var statements = new List<Expression>();
@@ -102,7 +110,7 @@ namespace Cesil
 
             statements.Add(assignRes);
 
-            var invalidCallOp = Methods.Throw.InvalidOperationExceptionOfObject;
+            var invalidCallOp = Methods.Throw.InvalidOperationException;
             var callThrow = Expression.Call(invalidCallOp, Expression.Constant($"{nameof(Parser)} {parser} returned false"));
 
             var ifNot = Expression.IfThen(Expression.Not(resVar), callThrow);

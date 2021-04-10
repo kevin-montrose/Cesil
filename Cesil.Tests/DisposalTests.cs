@@ -175,10 +175,6 @@ namespace Cesil.Tests
                 {
                     IDisposable_Reader();
                 }
-                else if (t == typeof(ReaderStateMachine))
-                {
-                    IDisposable_ReaderStateMachine();
-                }
                 else if (t == typeof(Writer<>))
                 {
                     IDisposable_Writer();
@@ -206,10 +202,6 @@ namespace Cesil.Tests
                 else if (t == typeof(HeadersReader<>.HeaderEnumerator))
                 {
                     IDisposable_HeaderEnumerator();
-                }
-                else if (t == typeof(CharacterLookup))
-                {
-                    IDisposable_CharacterLookup();
                 }
                 else if (t == typeof(MaxSizedBufferWriter))
                 {
@@ -266,11 +258,6 @@ namespace Cesil.Tests
                 else if (t == typeof(BufferWriterByteAdapter))
                 {
                     IDisposable_BufferWriterByteAdapter();
-                }
-                else if (t == typeof(ReaderStateMachine.PinHandle))
-                {
-                    // intentionally NOT testing, this is plain as hell wrapper
-                    //   that is for making things exception safe
                 }
                 else if (t == typeof(RequiredSet) || t == typeof(DynamicRowConstructor) || t == typeof(NeedsHoldRowConstructor<,>) || t == typeof(SimpleRowConstructor<>))
                 {
@@ -1011,55 +998,6 @@ namespace Cesil.Tests
                 }
             }
 
-            // test for ReaderStateMachine
-            static void IDisposable_ReaderStateMachine()
-            {
-                // double dispose does not error
-                {
-                    var r = MakeReader();
-                    Assert.False(r.IsDisposed);
-                    r.Dispose();
-                    r.Dispose();
-                }
-
-                // assert throws after dispose
-                {
-                    var r = MakeReader();
-                    r.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)r).AssertNotDisposed());
-                }
-
-                var testCases = 0;
-
-                // figure out how many _public_ methods need testing
-                int expectedTestCases;
-                {
-                    using (var r = MakeReader())
-                    {
-                        expectedTestCases = GetNumberExpectedDisposableTestCases(r);
-                    }
-                }
-
-                Assert.Equal(expectedTestCases, testCases);
-
-                // make a reader that's "good to go"
-                static ReaderStateMachine MakeReader()
-                {
-                    var ret = new ReaderStateMachine();
-                    ret.Initialize(
-                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
-                        'a',
-                        'b',
-                        RowEnding.CarriageReturnLineFeed,
-                        ReadHeader.Always,
-                        false,
-                        false,
-                        false
-                    );
-                    return ret;
-                }
-            }
-
             // test for Writer
             static void IDisposable_Writer()
             {
@@ -1291,7 +1229,7 @@ namespace Cesil.Tests
                         new ReaderStateMachine(),
                         Options.Default,
                         MemoryPool<char>.Shared,
-                        CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
+                        CharacterLookup.MakeCharacterLookup(Options.Default, out _),
                         new TextReaderAdapter(TextReader.Null),
                         Options.Default.ValueSeparator.AsMemory()
                     );
@@ -1338,13 +1276,13 @@ namespace Cesil.Tests
                         new HeadersReader<_IDisposable>(
                             new ReaderStateMachine(),
                             config,
-                            CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _),
+                            CharacterLookup.MakeCharacterLookup(Options.Default, out _),
                             new TextReaderAdapter(TextReader.Null),
                             new BufferWithPushback(
                                 MemoryPool<char>.Shared,
                                 64
                             ),
-                            RowEnding.CarriageReturnLineFeed
+                            ReadRowEnding.CarriageReturnLineFeed
                         );
                 }
             }
@@ -1408,44 +1346,6 @@ namespace Cesil.Tests
                 static HeadersReader<_IDisposable>.HeaderEnumerator MakeEnumerator()
                 {
                     return new HeadersReader<_IDisposable>.HeaderEnumerator(0, ReadOnlyMemory<char>.Empty, WhitespaceTreatments.Preserve);
-                }
-            }
-
-            // test CharacterLookup
-            static void IDisposable_CharacterLookup()
-            {
-                // double dispose does not error
-                {
-                    var l = MakeLookup();
-                    Assert.False(l.IsDisposed);
-                    l.Dispose();
-                    l.Dispose();
-                }
-
-                // assert throws after dispose
-                {
-                    var l = MakeLookup();
-                    l.Dispose();
-                    Assert.Throws<ObjectDisposedException>(() => ((ITestableDisposable)l).AssertNotDisposed());
-                }
-
-                var testCases = 0;
-
-                // figure out how many _public_ methods need testing
-                int expectedTestCases;
-                {
-                    using (var l = MakeLookup())
-                    {
-                        expectedTestCases = GetNumberExpectedDisposableTestCases(l);
-                    }
-                }
-
-                Assert.Equal(expectedTestCases, testCases);
-
-                // make a partial that's "good to go"
-                static CharacterLookup MakeLookup()
-                {
-                    return CharacterLookup.MakeCharacterLookup(Options.Default, MemoryPool<char>.Shared, out _);
                 }
             }
 

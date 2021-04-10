@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Dynamic;
 using System.Linq;
@@ -29,8 +30,12 @@ namespace Cesil
     ///   with a [DataMember], and will call Reset() methods.  Expects
     ///   a public parameterless constructor for any deserialized types.
     /// 
-    /// It will convert cells to most built-in types, and map rows to
-    ///   POCOs, ValueTuples, Tuples, and IEnumerables.
+    /// It will also deserialize records using their primary constructor.
+    ///   Names, Parsers, Resets, and Order may be customized with records but
+    ///   not Setters and MemberRequireds.
+    /// 
+    /// It will convert dynamic cells to most built-in types, and map dynamoc
+    ///   rows to POCOs, ValueTuples, Tuples, and IEnumerables.
     /// 
     /// This type is unsealed to allow for easy extension of it's behavior.
     /// </summary>
@@ -71,7 +76,14 @@ namespace Cesil
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public virtual InstanceProvider? GetInstanceProvider(TypeInfo forType)
-        => InstanceProvider.GetDefault(forType);
+        {
+            if (CheckReadingRecordType(forType, out var provider, out _))
+            {
+                return provider;
+            }
+
+            return InstanceProvider.GetDefault(forType);
+        }
 
         /// <summary>
         /// Enumerate all columns to deserialize.
@@ -90,7 +102,11 @@ namespace Cesil
 
             IEnumerable<DeserializableMember> ret;
 
-            if (CheckReadingWellKnownType(forType, out var knownMember))
+            if (CheckReadingRecordType(forType, out _, out var recordMembers))
+            {
+                ret = recordMembers;
+            }
+            else if (CheckReadingWellKnownType(forType, out var knownMember))
             {
                 // no need to create something fancy for a single member
                 ret = new[] { knownMember };
@@ -231,6 +247,12 @@ namespace Cesil
             Utils.CheckArgumentNull(forType, nameof(forType));
             Utils.CheckArgumentNull(property, nameof(property));
 
+            var orderForRecordMember = DetermineRecordMemberOrder(forType, property.DeclaringType?.GetTypeInfo());
+            if (orderForRecordMember != null)
+            {
+                return orderForRecordMember;
+            }
+
             return GetOrder(property);
         }
 
@@ -324,7 +346,7 @@ namespace Cesil
         }
 
         /// <summary>
-        /// Returns the parser to use for the column that maps to the given property when deserialized.
+        /// Returns the parser to use for the column that maps to the given field when deserialized.
         /// 
         /// Override to tweak behavior.
         /// </summary>
@@ -380,6 +402,71 @@ namespace Cesil
             return null;
         }
 
+        // constructor parameter defaults
+
+        /// <summary>
+        /// Returns the name of the column that should map to the given constructor parameter when deserialized.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        protected virtual string GetDeserializationName(TypeInfo forType, ParameterInfo parameter)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(parameter, nameof(parameter));
+
+            return GetName(parameter);
+        }
+
+        /// <summary>
+        /// Returns the parser to use for the column that maps to the given constructor parameter when deserialized.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected virtual Parser? GetParser(TypeInfo forType, ParameterInfo parameter)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(parameter, nameof(parameter));
+
+            return GetParser(parameter.ParameterType.GetTypeInfo());
+        }
+
+        /// <summary>
+        /// Returns the index of the column that should map to the given constructor parameter.  Headers
+        ///   can change this during deserialization.
+        ///   
+        /// Return null to leave order unspecified.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        protected virtual int? GetOrder(TypeInfo forType, ParameterInfo parameter)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(parameter, nameof(parameter));
+
+            var orderForRecordMember = DetermineRecordMemberOrder(forType, parameter.Member.DeclaringType?.GetTypeInfo());
+            if (orderForRecordMember != null)
+            {
+                return orderForRecordMember;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns the reset method, if any, to call prior to deserializing the given constructor parameter.
+        /// 
+        /// Override to tweak behavior.
+        /// </summary>
+        [return: NullableExposed("May not be known, null is cleanest way to handle it")]
+        protected virtual Reset? GetReset(TypeInfo forType, ParameterInfo parameter)
+        {
+            Utils.CheckArgumentNull(forType, nameof(forType));
+            Utils.CheckArgumentNull(parameter, nameof(parameter));
+
+            return null;
+        }
+
         // common deserialization defaults
 
         /// <summary>
@@ -405,7 +492,18 @@ namespace Cesil
             return member.Name;
         }
 
+        // internal for testing purposes
+        internal static string GetName(ParameterInfo parameter)
+        {
+            var name = parameter.Name;
 
+            if (name == null)
+            {
+                Throw.InvalidOperationException($"Attempted to deserialize parameter with no name: {parameter}");
+            }
+
+            return name;
+        }
 
         private static MemberRequired GetIsRequired(MemberInfo member)
         {
@@ -425,7 +523,7 @@ namespace Cesil
         {
             if (forType.IsBigTuple() || forType.IsBigValueTuple())
             {
-                return Throw.InvalidOperationException<IEnumerable<SerializableMember>>($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
+                Throw.InvalidOperationException($"{forType.Name} is a tuple with a Rest property, the {nameof(DefaultTypeDescriber)} cannot serialize this unambiguously.");
             }
 
             if (CanCache)
@@ -439,7 +537,6 @@ namespace Cesil
             }
 
             IEnumerable<SerializableMember> ret;
-
             if (CheckWritingWellKnownType(forType, out var knownMember))
             {
                 // no need to spin up something big for a single member
@@ -640,9 +737,7 @@ namespace Cesil
             {
                 var fieldType = field.FieldType.GetTypeInfo();
 
-                return
-                    fieldType != Types.Void &&
-                    Formatter.GetDefault(fieldType) != null;
+                return Formatter.GetDefault(fieldType) != null;
             }
 
             return false;
@@ -843,11 +938,9 @@ namespace Cesil
 
                         if (!cache.TryGetFormatter(Types.String, out formatter))
                         {
-                            formatter = GetFormatter(Types.String, name, in context, rowObj);
-                            if (formatter != null)
-                            {
-                                cache.AddFormatter(Types.String, formatter);
-                            }
+                            // this can't fail, because we're in CanCache which means we'll always get a default formatter
+                            formatter = Utils.NonNull(GetFormatter(Types.String, name, in context, rowObj));
+                            cache.AddFormatter(Types.String, formatter);
                         }
                     }
                     else
@@ -857,7 +950,7 @@ namespace Cesil
 
                     if (formatter == null)
                     {
-                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
+                        Throw.InvalidOperationException($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
                     cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
@@ -913,11 +1006,9 @@ endLoop:
 
                         if (!cache.TryGetFormatter(Types.String, out formatter))
                         {
-                            formatter = GetFormatter(Types.String, name, in context, rowObj);
-                            if (formatter != null)
-                            {
-                                cache.AddFormatter(Types.String, formatter);
-                            }
+                            // this can't fail, because we're in CanCache which means we'll always get a default formatter
+                            formatter = Utils.NonNull(GetFormatter(Types.String, name, in context, rowObj));
+                            cache.AddFormatter(Types.String, formatter);
                         }
                     }
                     else
@@ -927,7 +1018,7 @@ endLoop:
 
                     if (formatter == null)
                     {
-                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
+                        Throw.InvalidOperationException($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
                     cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
@@ -944,7 +1035,7 @@ endLoop:
             // special case the most convenient dynamic type
             if (rowObj is ExpandoObject asExpando)
             {
-                var asCollection = (ICollection<KeyValuePair<string, object>>)asExpando;
+                var asCollection = (ICollection<KeyValuePair<string, object?>>)asExpando;
                 if (asCollection.Count > cells.Length)
                 {
                     return asCollection.Count;
@@ -958,7 +1049,10 @@ endLoop:
                     var value = kv.Value;
                     Formatter? formatter;
 
-                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj))
+                    {
+                        continue;
+                    }
 
                     if (value == null)
                     {
@@ -983,26 +1077,13 @@ endLoop:
                         {
                             formatter = GetFormatter(valueType, name, in context, rowObj);
                         }
-
-                        if (formatter == null)
-                        {
-                            // try and coerce into a string?
-                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.String, valueType);
-                            var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
-                            try
-                            {
-                                value = convertCallSite.Target.Invoke(convertCallSite, value);
-                                formatter = Formatter.GetDefault(Types.String);
-                            }
-                            catch
-                            {
-                                /* intentionally left blank */
-                            }
-                        }
                     }
 
                     // skip anything that isn't formattable
-                    if (formatter == null) continue;
+                    if (formatter == null)
+                    {
+                        continue;
+                    }
 
                     cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
@@ -1049,7 +1130,10 @@ endLoop:
                     // skip it, access failed
                     if (skip) continue;
 
-                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj)) continue;
+                    if (!CanCache && !ShouldIncludeCell(name, in context, rowObj))
+                    {
+                        continue;
+                    }
 
                     if (value == null)
                     {
@@ -1074,26 +1158,13 @@ endLoop:
                         {
                             formatter = GetFormatter(valueType, name, in context, rowObj);
                         }
-
-                        if (formatter == null)
-                        {
-                            // try and coerce into a string?
-                            var convert = Microsoft.CSharp.RuntimeBinder.Binder.Convert(0, Types.String, valueType);
-                            var convertCallSite = CallSite<Func<CallSite, object, object>>.Create(convert);
-                            try
-                            {
-                                value = convertCallSite.Target.Invoke(convertCallSite, value);
-                                formatter = GetFormatter(Types.String, name, in context, rowObj);
-                            }
-                            catch
-                            {
-                                /* intentionally left blank */
-                            }
-                        }
                     }
 
                     // skip it, can't serialize it
-                    if (formatter == null) continue;
+                    if (formatter == null)
+                    {
+                        continue;
+                    }
 
                     cells[nextRetIx] = DynamicCellValue.Create(name, value, formatter);
                     nextRetIx++;
@@ -1139,7 +1210,7 @@ endLoop:
 
                     if (formatter == null)
                     {
-                        return Throw.InvalidOperationException<int>($"No formatter returned by {nameof(GetFormatter)}");
+                        Throw.InvalidOperationException($"No formatter returned by {nameof(GetFormatter)}");
                     }
 
                     var delProvider = ((ICreatesCacheableDelegate<Getter.DynamicGetterDelegate>)getter);
@@ -1208,15 +1279,22 @@ endLoop:
             // handle tuples
             if (IsValueTuple(targetType))
             {
-                var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertValueTuple), InternalStatic);
-                return DynamicRowConverter.ForMethod(genMtd);
+                var type = Types.TupleDynamicRowConverters.MakeGenericType(targetType).GetTypeInfo();
+                var mtd = type.GetMethodNonNull(nameof(TupleDynamicRowConverters<object>.TryConvertValueTuple), InternalStatic);
+                return DynamicRowConverter.ForMethod(mtd);
             }
             else if (IsTuple(targetType))
             {
-                var mtd = Types.TupleDynamicParsers.MakeGenericType(targetType).GetTypeInfo();
-                var genMtd = mtd.GetMethodNonNull(nameof(TupleDynamicParsers<object>.TryConvertTuple), InternalStatic);
-                return DynamicRowConverter.ForMethod(genMtd);
+                var type = Types.TupleDynamicRowConverters.MakeGenericType(targetType).GetTypeInfo();
+                var mtd = type.GetMethodNonNull(nameof(TupleDynamicRowConverters<object>.TryConvertTuple), InternalStatic);
+                return DynamicRowConverter.ForMethod(mtd);
+            }
+
+            if (targetType.IsRecordType(out _, out _, out _))
+            {
+                var type = Types.RecordDynamicRowConverter.MakeGenericType(targetType).GetTypeInfo();
+                var mtd = type.GetMethodNonNull(nameof(RecordDynamicRowConverter<object>.TryConvert), InternalStatic);
+                return DynamicRowConverter.ForMethod(mtd);
             }
 
             // handle IEnumerables
@@ -1248,12 +1326,19 @@ endLoop:
             }
 
             int width;
-            if (columns is ICollection<ColumnIdentifier> c)
+            if (columns is IReadOnlyCollection<ColumnIdentifier> roc)
             {
+                // our own stuff implements IReadOnlCollection
+                width = roc.Count;
+            }
+            else if (columns is ICollection<ColumnIdentifier> c)
+            {
+                // ... but any kind of collection will do
                 width = c.Count;
             }
             else
             {
+                // ... sigh, just count them
                 width = 0;
                 foreach (var _ in columns)
                 {
@@ -1381,6 +1466,85 @@ loopEnd:
             return new PropertyPOCOResult(emptyCons, setters, columnIndexes);
         }
 
+        private bool CheckReadingRecordType(
+            TypeInfo forType,
+            [MaybeNullWhen(returnValue: false)] out InstanceProvider provider,
+            [MaybeNullWhen(returnValue: false)] out IEnumerable<DeserializableMember> members
+        )
+        {
+            if (!forType.IsRecordType(out var cons, out var alsoSetByCons, out _))
+            {
+                provider = null;
+                members = ImmutableArray<DeserializableMember>.Empty;
+                return false;
+            }
+
+            var buffer = MemberOrderHelper<DeserializableMember>.Create();
+
+            var ps = cons.GetParameters();
+
+            provider = ps.Length == 0 ? InstanceProvider.ForParameterlessConstructor(cons) : InstanceProvider.ForConstructorWithParameters(cons);
+
+            for (var i = 0; i < ps.Length; i++)
+            {
+                var p = ps[i];
+
+                var name = GetDeserializationName(forType, p);
+                var setter = Setter.ForConstructorParameter(p);
+                var parser = GetParser(forType, p);
+                var order = GetOrder(forType, p);
+                var reset = GetReset(forType, p);
+
+                var mem = DeserializableMember.CreateInner(forType, name, setter, parser, MemberRequired.Yes, reset, null);
+                buffer.Add(order, mem);
+            }
+
+            foreach (var prop in forType.GetProperties(All))
+            {
+                var alreadyHandled = alsoSetByCons.Contains(prop);
+                if (alreadyHandled)
+                {
+                    continue;
+                }
+
+                if (!ShouldSerialize(forType, prop))
+                {
+                    continue;
+                }
+
+                var name = GetDeserializationName(forType, prop);
+                var setter = GetSetter(forType, prop);
+                var parser = GetParser(forType, prop);
+                var order = GetOrder(forType, prop);
+                var isRequired = GetIsRequired(forType, prop);
+                var reset = GetReset(forType, prop);
+
+                var mem = DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset, null);
+                buffer.Add(order, mem);
+            }
+
+            foreach (var field in forType.GetFields(All))
+            {
+                if (!ShouldSerialize(forType, field))
+                {
+                    continue;
+                }
+
+                var name = GetDeserializationName(forType, field);
+                var setter = GetSetter(forType, field);
+                var parser = GetParser(forType, field);
+                var order = GetOrder(forType, field);
+                var isRequired = GetIsRequired(forType, field);
+                var reset = GetReset(forType, field);
+
+                var mem = DeserializableMember.CreateInner(forType, name, setter, parser, isRequired, reset, null);
+                buffer.Add(order, mem);
+            }
+
+            members = buffer;
+            return true;
+        }
+
         private bool CheckReadingWellKnownType(TypeInfo forType, [MaybeNullWhen(returnValue: false)] out DeserializableMember member)
         {
             if (!WellKnownRowTypes.TryGetSetter(forType, out var name, out var setter))
@@ -1417,6 +1581,25 @@ loopEnd:
 
             member = SerializableMember.CreateInner(forType, name, getter, formatter, null, EmitDefaultValue.Yes);
             return true;
+        }
+
+        private int? DetermineRecordMemberOrder(TypeInfo rowType, TypeInfo? memberDeclType)
+        {
+            // if the type we're writing is a row, AND the member we're writing was introduced by a row
+            //    then put the member relative earlier if it was declared higher up in the inheritance tree
+
+            if (rowType.IsRecordType(out _, out _, out _))
+            {
+                if (memberDeclType != null)
+                {
+                    if (memberDeclType.IsRecordType(out _, out _, out var depth))
+                    {
+                        return depth;
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

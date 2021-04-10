@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Reflection;
+using Cesil.SourceGenerator;
 using Xunit;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
-    public class VersioningTests
+    public class SourceGeneratorVersioningTests
     {
         [Fact]
         public void CesilAssemblyVersionMatchesAheadOfTimeVersion()

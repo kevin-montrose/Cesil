@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -9,14 +8,279 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Cesil.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
-    public class DeserializerGenerationTests
+    public class GenerateDeserializerGenerationTests
     {
+        [Fact]
+        public async Task InitOnlyAsync()
+        {
+            // simple
+            {
+                var type = await RunSourceGeneratorAsync(
+                    "Foo.InitOnly",
+                    @"
+using Cesil;
+
+namespace Foo
+{
+    [GenerateDeserializer]
+    public class InitOnly
+    {
+        public int Bar { get; init; }
+    }
+}");
+
+                var rows = Read(type, "Bar\r\n1\r\n132");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1, (int)r1.Bar);
+                    },
+                    r2 =>
+                    {
+                        Assert.Equal(132, (int)r2.Bar);
+                    }
+                );
+            }
+
+            // multiple
+            {
+                var type = await RunSourceGeneratorAsync(
+                    "Foo.InitOnly",
+                    @"
+using Cesil;
+
+namespace Foo
+{
+    [GenerateDeserializer]
+    public class InitOnly
+    {
+        public int Foo { get; init; }
+        public int Bar { get; init; }
+    }
+}");
+
+                // both set
+                {
+                    var rows = Read(type, "Foo,Bar\r\n1,2\r\n3,4");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Foo);
+                            Assert.Equal(2, (int)r1.Bar);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Foo);
+                            Assert.Equal(4, (int)r2.Bar);
+                        }
+                    );
+                }
+
+                // only foo
+                {
+                    var rows = Read(type, "Foo\r\n1\r\n3");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Foo);
+                            Assert.Equal(0, (int)r1.Bar);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Foo);
+                            Assert.Equal(0, (int)r2.Bar);
+                        }
+                    );
+                }
+
+                // only bar
+                {
+                    var rows = Read(type, "Bar\r\n1\r\n3");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Bar);
+                            Assert.Equal(0, (int)r1.Foo);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Bar);
+                            Assert.Equal(0, (int)r2.Foo);
+                        }
+                    );
+                }
+            }
+
+            // both init and regular
+            {
+                var type = await RunSourceGeneratorAsync(
+                    "Foo.InitOnly",
+                    @"
+using Cesil;
+
+namespace Foo
+{
+    [GenerateDeserializer]
+    public class InitOnly
+    {
+        public int Foo { get; init; }
+        public int Bar { get; set; }
+    }
+}");
+
+                // both set
+                {
+                    var rows = Read(type, "Foo,Bar\r\n1,2\r\n3,4");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Foo);
+                            Assert.Equal(2, (int)r1.Bar);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Foo);
+                            Assert.Equal(4, (int)r2.Bar);
+                        }
+                    );
+                }
+
+                // only foo
+                {
+                    var rows = Read(type, "Foo\r\n1\r\n3");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Foo);
+                            Assert.Equal(0, (int)r1.Bar);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Foo);
+                            Assert.Equal(0, (int)r2.Bar);
+                        }
+                    );
+                }
+
+                // only bar
+                {
+                    var rows = Read(type, "Bar\r\n1\r\n3");
+
+                    Assert.Collection(
+                        rows,
+                        r1 =>
+                        {
+                            Assert.Equal(1, (int)r1.Bar);
+                            Assert.Equal(0, (int)r1.Foo);
+                        },
+                        r2 =>
+                        {
+                            Assert.Equal(3, (int)r2.Bar);
+                            Assert.Equal(0, (int)r2.Foo);
+                        }
+                    );
+                }
+            }
+        }
+
+        [Fact]
+        public async Task InitOnlyTypeDescriberAsync()
+        {
+            // public
+            {
+                var type = await RunSourceGeneratorAsync(
+                    "Foo.InitOnlyTypeDescriberAsync",
+                    @"
+using Cesil;
+
+namespace Foo
+{
+    [GenerateDeserializer]
+    public class InitOnlyTypeDescriberAsync
+    {
+        public int Foo { get; init; }
+    }
+}"
+                    );
+
+                var expectedSetter = type.GetPropertyNonNull("Foo", BindingFlags.Public | BindingFlags.Instance).SetMethod;
+
+                var members = TypeDescribers.AheadOfTime.EnumerateMembersToDeserialize(type.GetTypeInfo());
+                Assert.Collection(
+                    members,
+                    foo =>
+                    {
+                        Assert.Equal("Foo", foo.Name);
+                        Assert.False(foo.IsRequired);
+                        Assert.True(foo.IsBackedByGeneratedMethod);
+                        Assert.False(foo.Reset.HasValue);
+
+                        var setter = foo.Setter;
+                        Assert.True(setter.Method.HasValue);
+                        var setterMtd = setter.Method.Value;
+                        Assert.Equal(expectedSetter, setterMtd);
+                    }
+                );
+            }
+
+            // internal
+            {
+                var type = await RunSourceGeneratorAsync(
+                    "Foo.InitOnlyTypeDescriberAsync",
+                    @"
+using Cesil;
+
+namespace Foo
+{
+    [GenerateDeserializer]
+    public class InitOnlyTypeDescriberAsync
+    {
+        [DeserializerMember]
+        internal int Foo { get; init; }
+    }
+}"
+                    );
+
+                var expectedSetter = type.GetPropertyNonNull("Foo", BindingFlags.NonPublic | BindingFlags.Instance).SetMethod;
+
+                var members = TypeDescribers.AheadOfTime.EnumerateMembersToDeserialize(type.GetTypeInfo());
+                Assert.Collection(
+                    members,
+                    foo =>
+                    {
+                        Assert.Equal("Foo", foo.Name);
+                        Assert.False(foo.IsRequired);
+                        Assert.True(foo.IsBackedByGeneratedMethod);
+                        Assert.False(foo.Reset.HasValue);
+
+                        var setter = foo.Setter;
+                        Assert.True(setter.Method.HasValue);
+                        var setterMtd = setter.Method.Value;
+                        Assert.Equal(expectedSetter, setterMtd);
+                    }
+                );
+            }
+        }
+
         [Fact]
         public async Task SimpleAsync()
         {
@@ -864,7 +1128,10 @@ namespace Foo
         public double Double { get; set; }
         [DeserializerMemberAttribute]
         public decimal Decimal { get; set; }
-
+        [DeserializerMemberAttribute]
+        public nint NInt { get; set; }
+        [DeserializerMemberAttribute]
+        public nuint NUInt { get; set; }
 
         [DeserializerMemberAttribute]
         public bool? NullableBool { get; set; }
@@ -890,6 +1157,10 @@ namespace Foo
         public double? NullableDouble { get; set; }
         [DeserializerMemberAttribute]
         public decimal? NullableDecimal { get; set; }
+        [DeserializerMemberAttribute]
+        public nint? NullableNInt { get; set; }
+        [DeserializerMemberAttribute]
+        public nuint? NullableNUInt { get; set; }
 
         [DeserializerMemberAttribute]
         public string? String { get; set; }
@@ -952,7 +1223,7 @@ namespace Foo
             var nullableWideRowFlagsEnumValue = nullableWideRowFlagsEnumType.GetProperty("Value");
 
             var members = TypeDescribers.AheadOfTime.EnumerateMembersToDeserialize(type);
-            var rows = Read(type, "Bool,Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NullableBool,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\nTrue,1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,False,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\nFalse,3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,");
+            var rows = Read(type, "Bool,Byte,SByte,Short,UShort,Int,UInt,Long,ULong,Float,Double,Decimal,NInt,NUInt,NullableBool,NullableByte,NullableSByte,NullableShort,NullableUShort,NullableInt,NullableUInt,NullableLong,NullableULong,NullableFloat,NullableDouble,NullableDecimal,NullableNInt,NullableNUInt,String,Char,NullableChar,Guid,NullableGuid,DateTime,DateTimeOffset,NullableDateTime,NullableDateTimeOffset,Uri,TimeSpan,NullableTimeSpan,Enum,FlagsEnum,NullableEnum,NullableFlagsEnum\r\nTrue,1,-1,-11,11,-111,111,-1111,1111,1.20000005,3.3999999999999999,4.5,-123,123,False,2,-2,-22,22,-222,222,-2222,2222,6.69999981,8.9000000000000004,0.1,-456,456,hello,a,b,6e3687af-99a8-4415-9cde-c0d90d182171,7e3687af-99a8-4415-9cde-c0d90d182171,2020-11-15 00:00:00Z,2020-11-15 00:00:00Z,2021-11-15 00:00:00Z,2021-11-15 00:00:00Z,https://example.com/example,01:02:03,04:05:06,None,Empty,Foo,Hello\r\nFalse,3,-3,-33,33,-333,333,-3333,3333,2.29999995,4.5,6.7,-789,789,,,,,,,,,,,,,,,,c,,8e3687af-99a8-4415-9cde-c0d90d182171,,2022-11-15 00:00:00Z,2022-11-15 00:00:00Z,,,,07:08:09,,Foo,Hello,,");
 
             Assert.Collection(
                 rows,
@@ -970,6 +1241,8 @@ namespace Foo
                     Assert.Equal((float)1.2f, (float)row1.Float);
                     Assert.Equal((double)3.4, (double)row1.Double);
                     Assert.Equal((decimal)4.5m, (decimal)row1.Decimal);
+                    Assert.Equal((nint)(-123), (nint)row1.NInt);
+                    Assert.Equal((nuint)(123), (nuint)row1.NUInt);
 
                     Assert.Equal((bool?)false, (bool?)row1.NullableBool);
                     Assert.Equal((byte?)2, (byte?)row1.NullableByte);
@@ -983,6 +1256,8 @@ namespace Foo
                     Assert.Equal((float?)6.7f, (float?)row1.NullableFloat);
                     Assert.Equal((double?)8.9, (double?)row1.NullableDouble);
                     Assert.Equal((decimal?)0.1m, (decimal?)row1.NullableDecimal);
+                    Assert.Equal((nint?)(-456), (nint?)row1.NullableNInt);
+                    Assert.Equal((nuint?)456, (nuint?)row1.NullableNUInt);
 
                     Assert.Equal("hello", (string)row1.String);
 
@@ -1034,6 +1309,8 @@ namespace Foo
                     Assert.Equal((float)2.3f, (float)row2.Float);
                     Assert.Equal((double)4.5, (double)row2.Double);
                     Assert.Equal((decimal)6.7m, (decimal)row2.Decimal);
+                    Assert.Equal((nint)(-789), (nint)row2.NInt);
+                    Assert.Equal((nuint)789, (nuint)row2.NUInt);
 
                     Assert.Equal((bool?)null, (bool?)row2.NullableBool);
                     Assert.Equal((byte?)null, (byte?)row2.NullableByte);
@@ -1047,6 +1324,8 @@ namespace Foo
                     Assert.Equal((float?)null, (float?)row2.NullableFloat);
                     Assert.Equal((double?)null, (double?)row2.NullableDouble);
                     Assert.Equal((decimal?)null, (decimal?)row2.NullableDecimal);
+                    Assert.Equal((nint?)null, (nint?)row2.NullableNInt);
+                    Assert.Equal((nuint?)null, (nuint?)row2.NullableNUInt);
 
                     Assert.Equal("", (string)row2.String);
 
@@ -2006,6 +2285,641 @@ namespace Foo
             }
         }
 
+        [Fact]
+        public async Task FailingParserAsync()
+        {
+            var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.FailingParserAsync",
+                        @"
+using Cesil;
+using System;
+
+namespace Foo 
+{   
+    [GenerateDeserializer]
+    public class FailingParserAsync
+    {
+        [DeserializerMember(ParserType=typeof(FailingParserAsync), ParserMethodName=nameof(Fail))]
+        public string? A { get; set; }
+
+        internal static bool Fail(ReadOnlySpan<char> data, in ReadContext ctx, out string? val)
+        {
+            val = """";
+            return false;
+        }
+    }
+}"
+                    );
+
+            var exc = Assert.Throws<SerializationException>(() => Read(type, @"A\r\nfoo"));
+
+            Assert.Equal("Failed to parse \"A\\r\\nfoo\" for column index=ColumnIdentifier with Index=0, Name=A using Parser backed by method Boolean __Column_0_Parser(System.ReadOnlySpan`1[System.Char], Cesil.ReadContext ByRef, System.String ByRef) creating System.String (AllowNull)", exc.Message);
+        }
+
+        [Fact]
+        public async Task RecordsAsync()
+        {
+            // simple
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records1",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateDeserializer]
+    public record Records1(int A, string B);
+}"
+                        );
+
+                var rows = Read(type, "A,B\r\n1,foo\r\n2,bar");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1, (int)r1.A);
+                        Assert.Equal("foo", (string)r1.B);
+                    },
+                    r2 =>
+                    {
+                        Assert.Equal(2, (int)r2.A);
+                        Assert.Equal("bar", (string)r2.B);
+                    }
+                );
+            }
+
+            // additional property
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records2",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateDeserializer]
+    public record Records2(int A)
+    {
+        public string? B { get; set; }
+    }
+}"
+                        );
+
+                var rows = Read(type, "A,B\r\n1,foo\r\n2,bar");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1, (int)r1.A);
+                        Assert.Equal("foo", (string)r1.B);
+                    },
+                    r2 =>
+                    {
+                        Assert.Equal(2, (int)r2.A);
+                        Assert.Equal("bar", (string)r2.B);
+                    }
+                );
+            }
+
+            // inheritance
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records3",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    public record Records1(int A, string B);
+
+    [GenerateDeserializer]
+    public record Records3(int C) : Records1(C * 2, C.ToString()+""!"") { }
+}
+            "
+                        );
+                
+                var rows = Read(type, "A,B,C\r\n2,1!,1\r\n4,2!,2");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(2, (int)r1.A);
+                        Assert.Equal("1!", (string)r1.B);
+                        Assert.Equal(1, (int)r1.C);
+                    },
+                    r2 =>
+                    {
+                        Assert.Equal(4, (int)r2.A);
+                        Assert.Equal("2!", (string)r2.B);
+                        Assert.Equal(2, (int)r2.C);
+                    }
+                );
+            }
+
+            // customized parameters
+            {
+                var type =
+                        await RunSourceGeneratorAsync(
+                            "Foo.Records4",
+                            @"
+using Cesil;
+
+namespace Foo 
+{   
+    [GenerateDeserializer]
+    public record Records4([DeserializerMember(Name=""Foo"")]int C) { }
+}
+            "
+                        );
+
+                var rows = Read(type, "Foo\r\n1\r\n2\r\n3");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1, (int)r1.C);
+                    },
+                    r2 =>
+                    {
+                        Assert.Equal(2, (int)r2.C);
+                    },
+                    r3 =>
+                    {
+                        Assert.Equal(3, (int)r3.C);
+                    }
+                );
+            }
+        }
+
+        [Fact]
+        public async Task SettersAsync()
+        {
+            // static taking value
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static void SetA(int a)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var aProp = type.GetPropertyNonNull("A", BindingFlags.Public | BindingFlags.Static);
+
+                aProp.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                var res = (int)aProp.GetValue(null);
+                Assert.Equal(1234, res);
+            }
+
+            // static taking in context and value
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static void SetA(int a, in ReadContext ctx)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var aProp = type.GetPropertyNonNull("A", BindingFlags.Public | BindingFlags.Static);
+
+                aProp.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                var res = (int)aProp.GetValue(null);
+                Assert.Equal(1234, res);
+            }
+
+            // static taking row, and value
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static void SetA(Bar row, int a)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var aProp = type.GetPropertyNonNull("A", BindingFlags.Public | BindingFlags.Static);
+
+                aProp.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                var res = (int)aProp.GetValue(null);
+                Assert.Equal(1234, res);
+            }
+
+            // static taking row by ref, and value
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static void SetA(ref Bar row, int a)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var aProp = type.GetPropertyNonNull("A", BindingFlags.Public | BindingFlags.Static);
+
+                aProp.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                var res = (int)aProp.GetValue(null);
+                Assert.Equal(1234, res);
+            }
+
+            // static taking row, value, and in ReadContext
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static void SetA(Bar row, int a, in ReadContext ctx)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var aProp = type.GetPropertyNonNull("A", BindingFlags.Public | BindingFlags.Static);
+
+                aProp.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                var res = (int)aProp.GetValue(null);
+                Assert.Equal(1234, res);
+            }
+
+            // instance taking value and in ReadContext
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public int A { get; set; }
+
+                                [DeserializerMember(Name = ""Blah"")]
+                                public void SetA(int a, in ReadContext ctx)
+                                {
+                                    A = a;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var rows = Read(type, "Blah\r\n1234");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1234, (int)r1.A);
+                    }
+                );
+            }
+
+            // static field
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static int A;
+                            }
+                        }
+        "
+                    );
+
+                var aField = type.GetFieldNonNull("A", BindingFlags.Static | BindingFlags.Public);
+
+                aField.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                Assert.Equal(1234, (int)aField.GetValue(null));
+            }
+
+            // static property
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                [DeserializerMember(Name = ""Blah"")]
+                                public static int A { get; set; }
+                            }
+                        }
+        "
+                    );
+
+                var aField = type.GetPropertyNonNull("A", BindingFlags.Static | BindingFlags.Public);
+
+                aField.SetValue(null, 0);
+
+                var rows = Read(type, "Blah\r\n1234");
+                Assert.Single(rows);
+
+                Assert.Equal(1234, (int)aField.GetValue(null));
+            }
+        }
+
+        [Fact]
+        public async Task ResetsAsync()
+        {
+            // static, no parameters
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int ResetCalled;
+
+                                [DeserializerMember(ResetType = typeof(Bar), ResetMethodName = nameof(Reset))]
+                                public int A { get; set; }
+
+
+                                public static void Reset()
+                                {
+                                    ResetCalled = 1;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var called = type.GetFieldNonNull("ResetCalled", BindingFlags.Public | BindingFlags.Static);
+
+                called.SetValue(null, 0);
+
+                var rows = Read(type, "A\r\n1234");
+
+                Assert.Equal(1, (int)called.GetValue(null));
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1234, (int)r1.A);
+                    }
+                );
+            }
+
+            // static, takes row
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int ResetCalled;
+
+                                [DeserializerMember(ResetType = typeof(Bar), ResetMethodName = nameof(Reset))]
+                                public int A { get; set; }
+
+
+                                public static void Reset(Bar row)
+                                {
+                                    ResetCalled = 1;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var called = type.GetFieldNonNull("ResetCalled", BindingFlags.Public | BindingFlags.Static);
+
+                called.SetValue(null, 0);
+
+                var rows = Read(type, "A\r\n1234");
+
+                Assert.Equal(1, (int)called.GetValue(null));
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1234, (int)r1.A);
+                    }
+                );
+            }
+
+            // static, takes row and in context
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public static int ResetCalled;
+
+                                [DeserializerMember(ResetType = typeof(Bar), ResetMethodName = nameof(Reset))]
+                                public int A { get; set; }
+
+
+                                public static void Reset(Bar row, in ReadContext ctx)
+                                {
+                                    ResetCalled = 1;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var called = type.GetFieldNonNull("ResetCalled", BindingFlags.Public | BindingFlags.Static);
+
+                called.SetValue(null, 0);
+
+                var rows = Read(type, "A\r\n1234");
+
+                Assert.Equal(1, (int)called.GetValue(null));
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1234, (int)r1.A);
+                    }
+                );
+            }
+
+            // instance, no parameters, so good
+            {
+                var type =
+                    await RunSourceGeneratorAsync(
+                        "Foo.Bar",
+                        @"
+                        using Cesil;
+
+                        namespace Foo 
+                        {   
+                            [GenerateDeserializer]
+                            public class Bar
+                            {
+                                public int ResetCalled;
+
+                                [DeserializerMember(ResetType = typeof(Bar), ResetMethodName = nameof(Reset))]
+                                public int A { get; set; }
+
+
+                                public void Reset()
+                                {
+                                    ResetCalled = 1;
+                                }
+                            }
+                        }
+        "
+                    );
+
+                var rows = Read(type, "A\r\n1234");
+
+                Assert.Collection(
+                    rows,
+                    r1 =>
+                    {
+                        Assert.Equal(1234, (int)r1.A);
+
+                        Assert.Equal(1, (int)r1.ResetCalled);
+                    }
+                );
+            }
+        }
+
         private static Func<dynamic> GetReadOne(System.Reflection.TypeInfo rowType, string csv)
         {
             var readImpl = GetReadOneImplOfT.MakeGenericMethod(rowType);
@@ -2025,7 +2939,7 @@ namespace Foo
             }
         }
 
-        private static readonly MethodInfo GetReadOneImplOfT = typeof(DeserializerGenerationTests).GetMethod(nameof(GetReadOneImpl), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo GetReadOneImplOfT = typeof(GenerateDeserializerGenerationTests).GetMethod(nameof(GetReadOneImpl), BindingFlags.NonPublic | BindingFlags.Static);
         private static Func<dynamic> GetReadOneImpl<T>(string csv)
         {
             var config = GetConfiguration<T>();
@@ -2034,10 +2948,10 @@ namespace Foo
             var e = rows.GetEnumerator();
             var done = false;
 
-            return 
+            return
                 () =>
                 {
-                    if(done)
+                    if (done)
                     {
                         return null;
                     }
@@ -2057,7 +2971,7 @@ namespace Foo
                 {
                     using (var reader = config.CreateReader(str))
                     {
-                        foreach(var row in reader.EnumerateAll())
+                        foreach (var row in reader.EnumerateAll())
                         {
                             yield return (dynamic)row;
                         }
@@ -2085,7 +2999,7 @@ namespace Foo
             }
         }
 
-        private static readonly MethodInfo ReadImplOfT = typeof(DeserializerGenerationTests).GetMethod(nameof(ReadImpl), BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo ReadImplOfT = typeof(GenerateDeserializerGenerationTests).GetMethod(nameof(ReadImpl), BindingFlags.NonPublic | BindingFlags.Static);
         private static dynamic[] ReadImpl<T>(string csv)
         {
             var config = GetConfiguration<T>();
@@ -2131,7 +3045,7 @@ namespace Foo
         {
             var serializer = new DeserializerGenerator();
 
-            var (producedCompilation, diagnostics) = await TestHelper.RunSourceGeneratorAsync(testFile, serializer, nullableContext, caller);
+            var (producedCompilation, diagnostics) = await SourceGeneratorTestHelper.RunSourceGeneratorAsync(testFile, serializer, nullableContext, caller);
 
             Assert.Empty(diagnostics);
 
@@ -2141,7 +3055,7 @@ namespace Foo
 
             Assert.Empty(res.Diagnostics);
             Assert.True(res.Success);
-            
+
             var asm = Assembly.LoadFile(outputFile);
             var ret = Assert.Single(asm.GetTypes().Where(t => t.FullName == typeName));
 

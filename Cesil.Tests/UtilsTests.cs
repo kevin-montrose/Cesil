@@ -44,154 +44,6 @@ namespace Cesil.Tests
         }
 
         [Fact]
-        public void Sort()
-        {
-            // empty
-            {
-                var items = Span<int>.Empty;
-                Utils.Sort(items, (a, b) => a.CompareTo(b));
-
-                Assert.True(items.IsEmpty);
-            }
-
-            // single element
-            {
-                var items = new[] { 1 }.AsSpan();
-                Utils.Sort(items, (a, b) => a.CompareTo(b));
-
-                Assert.Collection(
-                    items.ToArray(),
-                    a => Assert.Equal(1, a)
-                );
-            }
-
-            // two element
-            {
-                var items1 = new[] { 1, 2 }.AsSpan();
-                var items2 = new[] { 2, 1 }.AsSpan();
-
-                Utils.Sort(items1, (a, b) => a.CompareTo(b));
-                Utils.Sort(items2, (a, b) => a.CompareTo(b));
-
-                Assert.Collection(
-                    items1.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a)
-                );
-
-                Assert.Collection(
-                    items2.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a)
-                );
-            }
-
-            // three element
-            {
-                var items1 = new[] { 1, 2, 3 }.AsSpan();
-                var items2 = new[] { 1, 3, 2 }.AsSpan();
-                var items3 = new[] { 2, 1, 3 }.AsSpan();
-                var items4 = new[] { 2, 3, 1 }.AsSpan();
-                var items5 = new[] { 3, 1, 2 }.AsSpan();
-                var items6 = new[] { 3, 2, 1 }.AsSpan();
-
-                Utils.Sort(items1, (a, b) => a.CompareTo(b));
-                Utils.Sort(items2, (a, b) => a.CompareTo(b));
-                Utils.Sort(items3, (a, b) => a.CompareTo(b));
-                Utils.Sort(items4, (a, b) => a.CompareTo(b));
-                Utils.Sort(items5, (a, b) => a.CompareTo(b));
-                Utils.Sort(items6, (a, b) => a.CompareTo(b));
-
-                Assert.Collection(
-                    items1.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-
-                Assert.Collection(
-                    items2.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-
-                Assert.Collection(
-                    items3.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-
-                Assert.Collection(
-                    items4.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-
-                Assert.Collection(
-                    items5.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-
-                Assert.Collection(
-                    items6.ToArray(),
-                    a => Assert.Equal(1, a),
-                    a => Assert.Equal(2, a),
-                    a => Assert.Equal(3, a)
-                );
-            }
-
-            // lots of random data
-            {
-                var rand = new Random(2020_06_21);
-                for (var i = 0; i < 1_000; i++)
-                {
-                    var len = rand.Next(1_000);
-                    var items = new List<int>();
-                    for (var j = 0; j < len; j++)
-                    {
-                        items.Add(rand.Next());
-                    }
-
-                    var span = items.ToArray().AsSpan();
-                    Utils.Sort(span, (a, b) => a.CompareTo(b));
-
-                    // make sure all the elements appear
-                    var spanArr = span.ToArray();
-                    for (var j = 0; j < items.Count; j++)
-                    {
-                        var subItem = items[j];
-                        var countInItems = items.Count(x => x == subItem);
-                        var countInSpan = spanArr.Count(x => x == subItem);
-
-                        Assert.Equal(countInItems, countInSpan);
-                    }
-
-                    if (items.Count > 0)
-                    {
-                        // check in order
-                        var prevItem = span[0];
-                        for (var j = 1; j < span.Length; j++)
-                        {
-                            var curItem = span[j];
-                            var inOrder = prevItem <= curItem;
-
-                            Assert.True(inOrder);
-                        }
-                    }
-                    else
-                    {
-                        Assert.True(span.IsEmpty);
-                    }
-                }
-            }
-        }
-
-        [Fact]
         public void EmptyMemoryOwnerIsEmpty()
         {
             var m = EmptyMemoryOwner.Singleton;
@@ -210,16 +62,16 @@ namespace Cesil.Tests
 
             var concreteConfig = Configuration.For<_WeirdImpossibleExceptions>();
             var concreteExc = ImpossibleException.Create("testing", "foo", "bar", 123, concreteConfig);
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Detect, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to Cesil.Tests.UtilsTests+_WeirdImpossibleExceptions\r\nConcrete binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Detect, ReadRowEnding=Detect, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteRowEnding=CarriageReturnLineFeed, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=Ignore", concreteExc.Message);
 
             var dynConfig = Configuration.ForDynamic();
             var dynExc = ImpossibleException.Create("testing", "foo", "bar", 123, dynConfig);
+            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Always, ReadRowEnding=Detect, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteRowEnding=CarriageReturnLineFeed, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
 
-            Assert.Equal("The impossible has happened!\r\ntesting\r\nFile: foo\r\nMember: bar\r\nLine: 123\r\nPlease report this to https://github.com/kevin-montrose/Cesil/issues/new\r\nBound to System.Object\r\nDynamic binding\r\nWith options: Options with CommentCharacter=, DynamicRowDisposal=OnReaderDispose, EscapedValueEscapeCharacter=\", EscapedValueStartAndEnd=\", MemoryPoolProvider=DefaultMemoryPoolProvider Shared Instance, ReadBufferSizeHint=0, ReadHeader=Always, RowEnding=CarriageReturnLineFeed, TypeDescriber=DefaultTypeDescriber Shared Instance, ValueSeparator=,, WriteBufferSizeHint=, WriteHeader=Always, WriteTrailingRowEnding=Never, WhitespaceTreatment=Preserve, ExtraColumnTreatment=IncludeDynamic", dynExc.Message);
-
-            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat"));
-            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default));
-            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException_Returns<object>("wat"));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException("wat", Options.Default));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException("wat", concreteConfig));
+            Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException_Returns<object, _WeirdImpossibleExceptions>("wat", concreteConfig));
 
             var files = new[] { "SomeFile.cs", null };
             var members = new[] { "SomeMember", null };
@@ -228,11 +80,17 @@ namespace Cesil.Tests
             {
                 foreach (var m in members)
                 {
-                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", f, m));
-                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object>("wat", Options.Default, f, m));
-                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException<object, _WeirdImpossibleExceptions>("wat", concreteConfig, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException("wat", f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException("wat", Options.Default, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException("wat", concreteConfig, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException_Returns<object, _WeirdImpossibleExceptions>("wat", concreteConfig, f, m));
+                    Assert.Throws<ImpossibleException>(() => Throw.ImpossibleException_Returns<object>("wat", f, m));
                 }
             }
+
+            // and this one is just super hard to contrive, but technically possible
+            var parseExc = Assert.Throws<System.Runtime.Serialization.SerializationException>(() => Throw.ParseFailed(Parser.GetDefault(Types.String), ReadContext.ReadingRow(Options.Default, 0, null), "hello"));
+            Assert.Equal("Failed to parse \"hello\" using Parser backed by method Boolean TryParseString(System.ReadOnlySpan`1[System.Char], Cesil.ReadContext ByRef, System.String ByRef) creating System.String (ForbidNull)", parseExc.Message);
         }
 
         [Fact]
@@ -388,6 +246,186 @@ namespace Cesil.Tests
             Assert.True(typeof(ValueTuple<,,,,,,,>).GetTypeInfo().IsBigValueTuple());
         }
 
+        class _IsRecordType1
+        {
+            public int A { get; init; }
+        }
+
+        class _IsRecordType2
+        {
+            public int A { get; init; }
+
+            public _IsRecordType2(int a)
+            {
+                A = a;
+            }
+        }
+
+        class _IsRecordType3
+        {
+            public int A { get; init; }
+
+            public _IsRecordType3(int a)
+            {
+                A = a;
+            }
+
+            public _IsRecordType3(_IsRecordType3 original)
+            {
+                A = original.A;
+            }
+        }
+
+        class _IsRecordType4
+        {
+            public int A { get; init; }
+
+            public _IsRecordType4(int a)
+            {
+                A = a;
+            }
+
+            public _IsRecordType4(_IsRecordType4 original)
+            {
+                A = original.A;
+            }
+
+            public virtual _IsRecordType4 Clone()
+            => new _IsRecordType4(this);
+        }
+
+        record _IsRecordType5(int A);
+
+        record _IsRecordType6(int A)
+        {
+            public _IsRecordType6(string b): this(b.Length)
+            {
+
+            }
+        }
+
+        record _IsRecordType7(string B): _IsRecordType6(B.Length)
+        {
+        }
+
+        record _IsRecordType8(string B) : _IsRecordType7(B)
+        {
+            public _IsRecordType8(int A, string B): this(B)
+            {
+
+            }
+        }
+
+        record _IsRecordType9;
+
+        [Fact]
+        public void IsRecordType()
+        {
+            Assert.False(typeof(_IsRecordType1).GetTypeInfo().IsRecordType(out var c1, out var p1, out var d1));
+            Assert.Null(c1);
+            Assert.Empty(p1);
+            Assert.Null(d1);
+
+            Assert.False(typeof(_IsRecordType2).GetTypeInfo().IsRecordType(out var c2, out var p2, out var d2));
+            Assert.Null(c2);
+            Assert.Empty(p2);
+            Assert.Null(d2);
+
+            Assert.False(typeof(_IsRecordType3).GetTypeInfo().IsRecordType(out var c3, out var p3, out var d3));
+            Assert.Null(c3);
+            Assert.Empty(p3);
+            Assert.Null(d3);
+
+            Assert.False(typeof(_IsRecordType4).GetTypeInfo().IsRecordType(out var c4, out var p4, out var d4));
+            Assert.Null(c4);
+            Assert.Empty(p4);
+            Assert.Null(d4);
+
+            Assert.True(typeof(_IsRecordType5).GetTypeInfo().IsRecordType(out var c5, out var p5, out var d5));
+            Assert.Collection(
+                c5.GetParameters(),
+                c => Assert.Equal(typeof(int), c.ParameterType)
+            );
+            Assert.Collection(
+                p5,
+                p =>
+                {
+                    Assert.Equal(nameof(_IsRecordType5.A), p.Name);
+                    Assert.Equal(typeof(int), p.PropertyType);
+                }
+            );
+            Assert.Equal(0, d5);
+
+            Assert.True(typeof(_IsRecordType6).GetTypeInfo().IsRecordType(out var c6, out var p6, out var d6));
+            Assert.Collection(
+                c6.GetParameters(),
+                c => Assert.Equal(typeof(int), c.ParameterType)
+            );
+            Assert.Collection(
+                p6,
+                p =>
+                {
+                    Assert.Equal(nameof(_IsRecordType6.A), p.Name);
+                    Assert.Equal(typeof(int), p.PropertyType);
+                }
+            );
+            Assert.Equal(0, d6);
+
+            Assert.True(typeof(_IsRecordType7).GetTypeInfo().IsRecordType(out var c7, out var p7, out var d7));
+            Assert.Collection(
+                c7.GetParameters(),
+                c => Assert.Equal(typeof(string), c.ParameterType)
+            );
+            Assert.Collection(
+                p7,
+                p =>
+                {
+                    Assert.Equal(nameof(_IsRecordType7.B), p.Name);
+                    Assert.Equal(typeof(string), p.PropertyType);
+                }
+            );
+            Assert.Equal(1, d7);
+
+            Assert.True(typeof(_IsRecordType8).GetTypeInfo().IsRecordType(out var c8, out var p8, out var d8));
+            Assert.Collection(
+                c8.GetParameters(),
+                c => Assert.Equal(typeof(string), c.ParameterType)
+            );
+            Assert.Collection(
+                p8,
+                p =>
+                {
+                    Assert.Equal(nameof(_IsRecordType8.B), p.Name);
+                    Assert.Equal(typeof(string), p.PropertyType);
+                }
+            );
+            Assert.Equal(2, d8);
+
+            Assert.True(typeof(_IsRecordType9).GetTypeInfo().IsRecordType(out var c9, out var p9, out var d9));
+            Assert.Empty(c9.GetParameters());
+            Assert.Empty(p9);
+            Assert.Equal(0, d9);
+        }
+
+        class _IsAutoInit
+        {
+            public int A { get; }
+            public int B { get; set; }
+            public int C { set { } }
+            public int D { init { } }
+            public int E { get; init; }
+        }
+
+        [Fact]
+        public void IsAutoInit()
+        {
+            Assert.False(typeof(_IsAutoInit).GetTypeInfo().GetProperty(nameof(_IsAutoInit.A)).IsAutoInit());
+            Assert.False(typeof(_IsAutoInit).GetTypeInfo().GetProperty(nameof(_IsAutoInit.B)).IsAutoInit());
+            Assert.False(typeof(_IsAutoInit).GetTypeInfo().GetProperty(nameof(_IsAutoInit.C)).IsAutoInit());
+            Assert.False(typeof(_IsAutoInit).GetTypeInfo().GetProperty(nameof(_IsAutoInit.D)).IsAutoInit());
+            Assert.True(typeof(_IsAutoInit).GetTypeInfo().GetProperty(nameof(_IsAutoInit.E)).IsAutoInit());
+        }
+
         [Fact]
         public void WeirdReflectionCases()
         {
@@ -492,38 +530,6 @@ namespace Cesil.Tests
                 var ix = Array.IndexOf(CharacterLookup.WhitespaceCharacters, c);
                 Assert.NotEqual(-1, ix);
             }
-        }
-
-        [Theory]
-        [InlineData("", "")]
-        [InlineData("abc", "abc")]
-        [InlineData("abc ", "abc ")]
-        [InlineData(" ", "")]
-        [InlineData(" a", "a")]
-        [InlineData(" a ", "a ")]
-        public void TrimLeadingWhitespace(string input, string expected)
-        {
-            var inputMem = input.AsMemory();
-            var trimmedMem = Utils.TrimLeadingWhitespace(inputMem);
-            var trimmedStr = new string(trimmedMem.Span);
-
-            Assert.Equal(expected, trimmedStr);
-        }
-
-        [Theory]
-        [InlineData("", "")]
-        [InlineData("abc", "abc")]
-        [InlineData("abc ", "abc")]
-        [InlineData(" ", "")]
-        [InlineData("a ", "a")]
-        [InlineData(" a ", " a")]
-        public void TrimTrailingWhitespace(string input, string expected)
-        {
-            var inputMem = input.AsMemory();
-            var trimmedMem = Utils.TrimTrailingWhitespace(inputMem);
-            var trimmedStr = new string(trimmedMem.Span);
-
-            Assert.Equal(expected, trimmedStr);
         }
 
         private class _Encode
@@ -921,35 +927,6 @@ namespace Cesil.Tests
             var config = (ConcreteBoundConfiguration<_FindNeedsEncode>)Configuration.For<_FindNeedsEncode>();
             var ix = Utils.FindNeedsEncode(seq, start, config);
 
-            Assert.Equal(expected, ix);
-        }
-
-        [Theory]
-
-        [InlineData("hello", "world", -1)]
-
-        [InlineData(",ello", ",", 0)]
-        [InlineData("h,llo", ",", 1)]
-        [InlineData("he,lo", ",", 2)]
-        [InlineData("hel,o", ",", 3)]
-        [InlineData("hell,", ",", 4)]
-
-        [InlineData("hello", "#*", -1)]
-        [InlineData("#ello", "#*", -1)]
-        [InlineData("*ello", "#*", -1)]
-        [InlineData("#*llo", "#*", 0)]
-        [InlineData("h#*lo", "#*", 1)]
-        [InlineData("he#*o", "#*", 2)]
-        [InlineData("hel#*", "#*", 3)]
-        [InlineData("hell#", "#*", -1)]
-
-        [InlineData("##*lo", "#*", 1)]
-        [InlineData("#e#*o", "#*", 2)]
-        [InlineData("#el#*", "#*", 3)]
-        [InlineData("#ell#", "#*", -1)]
-        public void Find(string txt, string needle, int expected)
-        {
-            var ix = Utils.Find(txt, 0, needle);
             Assert.Equal(expected, ix);
         }
 

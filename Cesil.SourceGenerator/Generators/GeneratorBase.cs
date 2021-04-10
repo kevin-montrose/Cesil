@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Cesil.SourceGenerator
 {
@@ -28,113 +30,72 @@ namespace Cesil.SourceGenerator
 
             var types = Utils.NonNull(NeededTypes);
 
-            ToGenerateFor = GetTypesToGenerateFor(compilation, types);
+            var relevantSyntax = ((AttributeTracker)Utils.NonNull(context.SyntaxReceiver)).GetMembers(compilation);
+
+            ToGenerateFor = GetTypesToGenerateFor(relevantSyntax, types);
 
             if (ToGenerateFor.IsEmpty)
             {
                 return;
             }
 
-            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, types);
+            Members = GetMembersToGenerateFor(context, compilation, ToGenerateFor, relevantSyntax, types);
 
-            GenerateSource(compilation, context, types, Members);
+            var generated = GenerateSource(Members);
+
+            foreach(var (name, source) in generated)
+            {
+                var cleanSource = Utils.RemoveUnusedUsings(compilation, source);
+
+                context.AddSource(name, SourceText.From(cleanSource, Encoding.UTF8));
+            }
         }
 
         public void Initialize(GeneratorInitializationContext context)
         {
-            // nothing to do
+            context.RegisterForSyntaxNotifications(() => new AttributeTracker());
         }
 
         internal abstract bool TryCreateNeededTypes(Compilation compilation, GeneratorExecutionContext context, out TNeededTypes? neededTypes);
 
-        internal abstract ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(Compilation compilation, TNeededTypes types);
+        internal abstract ImmutableArray<TypeDeclarationSyntax> GetTypesToGenerateFor(AttributedMembers attrMembers, TNeededTypes types);
 
         internal abstract ImmutableDictionary<INamedTypeSymbol, ImmutableArray<TMemberDescriber>> GetMembersToGenerateFor(
             GeneratorExecutionContext context,
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> toGenerateFor,
+            AttributedMembers members,
             TNeededTypes types
         );
 
-        internal abstract void GenerateSource(
-            Compilation compilation,
-            GeneratorExecutionContext context,
-            TNeededTypes types,
+        internal abstract IEnumerable<(string FileName, string Source)> GenerateSource(
             ImmutableDictionary<INamedTypeSymbol, ImmutableArray<TMemberDescriber>> toGenerate
         );
 
         internal static ImmutableArray<AttributeSyntax> GetConfigurationAttributes(
-            Compilation compilation,
+            AttributedMembers attrMembers,
             ITypeSymbol attributeType,
             FrameworkTypes frameworkTypes,
             ISymbol member
         )
         {
+            if (!attrMembers.AttributedSymbolsToAttributes.TryGetValue(member, out var attrs))
+            {
+                return ImmutableArray<AttributeSyntax>.Empty;
+            }
+
             var relevantAttributes = ImmutableArray.CreateBuilder<AttributeSyntax>();
 
-            foreach (var syntaxRef in member.DeclaringSyntaxReferences)
+            foreach (var (attr, attrType) in attrs)
             {
-                var syntax = syntaxRef.GetSyntax();
-                var syntaxModel = compilation.GetSemanticModel(syntax.SyntaxTree);
-
-                var method = syntax.ParentOrSelfOfType<MethodDeclarationSyntax>();
-                var field = syntax.ParentOrSelfOfType<FieldDeclarationSyntax>();
-                var prop = syntax.ParentOrSelfOfType<PropertyDeclarationSyntax>();
-                var parameter = syntax.ParentOrSelfOfType<ParameterSyntax>();
-
-                // property attribute usage allows indexers to be annotated... so need
-                //   to read them here so we can report errors later
-                var indexer = syntax.ParentOrSelfOfType<IndexerDeclarationSyntax>();
-
-                SyntaxList<AttributeListSyntax> attrLists;
-                if (method != null)
+                if (attributeType.Equals(attrType, SymbolEqualityComparer.Default))
                 {
-                    attrLists = method.AttributeLists;
-                }
-                else if (field != null)
-                {
-                    attrLists = field.AttributeLists;
-                }
-                else if (prop != null)
-                {
-                    attrLists = prop.AttributeLists;
-                }
-                else if (indexer != null)
-                {
-                    attrLists = indexer.AttributeLists;
-                }
-                else if (parameter != null)
-                {
-                    attrLists = parameter.AttributeLists;
-                }
-                else
-                {
-                    throw new Exception("This shouldn't be possible");
+                    relevantAttributes.Add(attr);
                 }
 
-                foreach (var attrList in attrLists)
+                if (frameworkTypes.DataMemberAttribute != null && frameworkTypes.DataMemberAttribute.Equals(attrType, SymbolEqualityComparer.Default))
                 {
-                    foreach (var attr in attrList.Attributes)
-                    {
-                        var attrTypeInfo = syntaxModel.GetTypeInfo(attr);
-
-                        var attrType = attrTypeInfo.Type;
-                        if (attrType == null)
-                        {
-                            continue;
-                        }
-
-                        if (attrType.Equals(attributeType, SymbolEqualityComparer.Default))
-                        {
-                            relevantAttributes.Add(attr);
-                            continue;
-                        }
-
-                        if (frameworkTypes.DataMemberAttribute != null && attrType.Equals(frameworkTypes.DataMemberAttribute, SymbolEqualityComparer.Default))
-                        {
-                            relevantAttributes.Add(attr);
-                        }
-                    }
+                    relevantAttributes.Add(attr);
                 }
             }
 
@@ -151,7 +112,7 @@ namespace Cesil.SourceGenerator
             }
 
             var attrs = member.GetAttributes();
-            return attrs.Any(a => a.AttributeClass?.Equals(ignoreDataMember, SymbolEqualityComparer.Default) ?? false);
+            return attrs.Any(a => ignoreDataMember.Equals(a.AttributeClass, SymbolEqualityComparer.Default));
         }
 
         internal static void AddHeader(StringBuilder sb, string action, string? forType = null)
@@ -169,7 +130,7 @@ namespace Cesil.SourceGenerator
             {
                 sb.Append("// For: ");
                 sb.AppendLine(forType);
-                sb.Append("//");
+                sb.AppendLine("//");
             }
             sb.Append("// On: ");
             sb.AppendLine(DateTime.UtcNow.ToString("u"));

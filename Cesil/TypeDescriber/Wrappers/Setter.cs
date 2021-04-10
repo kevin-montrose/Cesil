@@ -66,7 +66,7 @@ namespace Cesil
                         BackingMode.Method => Method.Value.IsStatic,
                         BackingMode.Delegate => !RowType.HasValue,
                         BackingMode.ConstructorParameter => false,
-                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                        _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                     };
             }
         }
@@ -213,7 +213,8 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             return selfExp;
@@ -228,7 +229,7 @@ namespace Cesil
 
             if (RowNullability == null)
             {
-                return Throw.InvalidOperationException<Setter>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+                Throw.InvalidOperationException($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
             Utils.ValidateNullHandling(RowType.Value, nullHandling);
@@ -239,7 +240,7 @@ namespace Cesil
                     BackingMode.Field => new Setter(RowType.Value, nullHandling, Takes, Field.Value, TakesNullability),
                     BackingMode.Method => new Setter(RowType.Value, nullHandling, Takes, Method.Value, TakesContext, TakesNullability, IsRowByRef),
                     BackingMode.Delegate => new Setter(RowType.Value, nullHandling, Takes, Delegate.Value, TakesNullability, IsRowByRef),
-                    _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -260,7 +261,7 @@ namespace Cesil
                     BackingMode.Field => new Setter(rowType, RowNullability, Takes, Field.Value, nullHandling),
                     BackingMode.Method => new Setter(rowType, RowNullability, Takes, Method.Value, TakesContext, nullHandling, IsRowByRef),
                     BackingMode.Delegate => new Setter(rowType, RowNullability, Takes, Delegate.Value, nullHandling, IsRowByRef),
-                    _ => Throw.ImpossibleException<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Setter>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -317,7 +318,7 @@ namespace Cesil
 
             if (set == null)
             {
-                return Throw.ArgumentException<Setter>("Property does not have a setter", nameof(property));
+                Throw.ArgumentException("Property does not have a setter", nameof(property));
             }
 
             return ForMethod(set);
@@ -346,7 +347,7 @@ namespace Cesil
 
             if (!returnsNoValue)
             {
-                return Throw.ArgumentException<Setter>($"{nameof(method)} must not return a value", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must not return a value", nameof(method));
             }
 
             TypeInfo? onType;
@@ -406,7 +407,7 @@ namespace Cesil
 
                         if (p1.IsByRef)
                         {
-                            return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by a static method taking 2 parameters cannot have a by ref second parameter unless that parameter is an `in {nameof(ReadContext)}`", nameof(method));
+                            Throw.ArgumentException($"{nameof(Setter)} backed by a static method taking 2 parameters cannot have a by ref second parameter unless that parameter is an `in {nameof(ReadContext)}`", nameof(method));
                         }
 
                         if (p0.IsByRef)
@@ -450,14 +451,15 @@ namespace Cesil
                     var p2 = args[2].ParameterType.GetTypeInfo();
                     if (!args[2].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"{nameof(Setter)} backed by an static method taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Setter>($"A static method backing a {nameof(Setter)} must take 1, 2, or 3 parameters", nameof(method));
+                    Throw.ArgumentException($"A static method backing a {nameof(Setter)} must take 1, 2, or 3 parameters", nameof(method));
+                    return default;
                 }
             }
             else
@@ -482,14 +484,15 @@ namespace Cesil
 
                     if (!args[1].IsReadContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<Setter>($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"{nameof(Setter)} backed by an instance method taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<Setter>($"An instance method backing a {nameof(Setter)} must take 1, or 2 parameters", nameof(method));
+                    Throw.ArgumentException($"An instance method backing a {nameof(Setter)} must take 1, or 2 parameters", nameof(method));
+                    return default;
                 }
             }
 
@@ -584,12 +587,13 @@ namespace Cesil
             var mem = parameter.Member;
             if (mem is ConstructorInfo cons)
             {
-                // todo: null handling behavior here?
-                return new Setter(cons.DeclaringTypeNonNull(), NullHandling.AllowNull, parameter.ParameterType.GetTypeInfo(), parameter, parameter.DetermineNullability());
+                // row can never be null because this is passed into a constructor, so a row is always "available"
+                return new Setter(cons.DeclaringTypeNonNull(), NullHandling.CannotBeNull, parameter.ParameterType.GetTypeInfo(), parameter, parameter.DetermineNullability());
             }
             else
             {
-                return Throw.ArgumentException<Setter>($"Expected parameter to be on a constructor; found {mem}", nameof(parameter));
+                Throw.ArgumentException($"Expected parameter to be on a constructor; found {mem}", nameof(parameter));
+                return default;
             }
         }
 
@@ -654,7 +658,7 @@ namespace Cesil
                     BackingMode.Method => Method.Value == setter.Method.Value,
                     BackingMode.ConstructorParameter => ConstructorParameter.Value == setter.ConstructorParameter.Value,
 
-                    _ => Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}"),
+                    _ => Throw.ImpossibleException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {mode}"),
                 };
         }
 
@@ -703,7 +707,8 @@ namespace Cesil
                 case BackingMode.ConstructorParameter:
                     return $"{nameof(Setter)} on {RowType} backed by the constructor parameter {ConstructorParameter} of {Takes} ({TakesNullability})";
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -784,7 +789,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.Void)
             {
-                return Throw.InvalidOperationException<Setter>($"Delegate must return void, found {retType}");
+                Throw.InvalidOperationException($"Delegate must return void, found {retType}");
             }
 
             var ps = mtd.GetParameters();
@@ -805,12 +810,12 @@ namespace Cesil
 
                 if (takesType.IsByRef)
                 {
-                    return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters cannot have a by ref second parameter");
+                    Throw.InvalidOperationException($"Delegate taking 3 parameters cannot have a by ref second parameter");
                 }
 
                 if (!ps[2].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Setter>($"Delegate taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}");
+                    Throw.InvalidOperationException($"Delegate taking 3 parameters must have a third parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var firstGenArg = rowType;
@@ -839,7 +844,7 @@ namespace Cesil
 
                 if (!ps[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<Setter>($"Delegate taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}");
+                    Throw.InvalidOperationException($"Delegate taking 2 parameters must have a second parameter of `in {nameof(ReadContext)}`; {msg}");
                 }
 
                 var setterDelType = Types.StaticSetterDelegate.MakeGenericType(takesType);
@@ -850,7 +855,8 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<Setter>("Delegate must take 2 or 3 parameters");
+                Throw.InvalidOperationException("Delegate must take 2 or 3 parameters");
+                return default;
             }
         }
 

@@ -25,7 +25,7 @@ namespace Cesil
 
         private NonNull<IReaderAdapter> Inner;
 
-        private RowEnding Ending;
+        private ReadRowEnding Ending;
 
         private readonly ReaderStateMachine State;
 
@@ -83,106 +83,133 @@ namespace Cesil
             ValueSeparatorMemory = valueSeparatorMemory;
         }
 
-        internal ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancellationToken)
+        internal ValueTask<(ReadRowEnding Ending, Memory<char> PushBack)?> DetectAsync(CancellationToken cancellationToken)
         {
-            var handle = State.Pin();
-            var disposeHandle = true;
-
-            try
+            var continueScan = true;
+            while (continueScan)
             {
-                var continueScan = true;
-                while (continueScan)
+                var mem = BufferOwner.Memory[BufferStart..];
+                var endTask = InnerAsync.Value.ReadAsync(mem, cancellationToken);
+
+                if (!endTask.IsCompletedSuccessfully(this))
                 {
-                    var mem = BufferOwner.Memory[BufferStart..];
-                    var endTask = InnerAsync.Value.ReadAsync(mem, cancellationToken);
-
-                    if (!endTask.IsCompletedSuccessfully(this))
-                    {
-                        disposeHandle = false;
-                        return DetectAsync_ContinueAfterReadAsync(this, endTask, handle, cancellationToken);
-                    }
-
-                    var end = endTask.Result;
-                    var buffSpan = BufferOwner.Memory.Span;
-
-                    if (end == 0)
-                    {
-                        // only need to check for '\r', because we'll never leave a '\n' pending the buffer
-                        if (BufferStart == 1 && buffSpan[0] == '\r')
-                        {
-                            Ending = RowEnding.CarriageReturn;
-                        }
-                        break;
-                    }
-                    else
-                    {
-                        AddToPushback(buffSpan.Slice(BufferStart, end));
-
-                        var len = end + BufferStart;
-                        var res = Advance(buffSpan[..len]);
-                        switch (res)
-                        {
-                            case AdvanceResult.Continue:
-                                BufferStart = 0;
-                                continue;
-                            case AdvanceResult.Finished:
-                                continueScan = false;
-                                continue;
-                            case AdvanceResult.Continue_PushBackOne:
-                                buffSpan[0] = buffSpan[len - 1];
-                                BufferStart = 1;
-                                continue;
-                            default:
-                                return new ValueTask<(RowEnding Ending, Memory<char> PushBack)?>(default((RowEnding Ending, Memory<char> PushBack)?));
-                        }
-                    }
+                    return DetectAsync_ContinueAfterReadAsync(this, endTask, cancellationToken);
                 }
 
-                // this implies we're only gonna read a row... so whatever
-                if (Ending == 0)
+                var end = endTask.Result;
+                var buffSpan = BufferOwner.Memory.Span;
+
+                if (end == 0)
                 {
-                    Ending = RowEnding.CarriageReturnLineFeed;
+                    // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                    if (BufferStart == 1 && buffSpan[0] == '\r')
+                    {
+                        Ending = ReadRowEnding.CarriageReturn;
+                    }
+                    break;
                 }
-
-                return new ValueTask<(RowEnding Ending, Memory<char> PushBack)?>((Ending, Pushback.Slice(0, PushbackLength)));
-
-            }
-            finally
-            {
-                if (disposeHandle)
+                else
                 {
-                    handle.Dispose();
+                    AddToPushback(buffSpan.Slice(BufferStart, end));
+
+                    var len = end + BufferStart;
+                    var res = Advance(buffSpan[..len]);
+                    switch (res)
+                    {
+                        case AdvanceResult.Continue:
+                            BufferStart = 0;
+                            continue;
+                        case AdvanceResult.Finished:
+                            continueScan = false;
+                            continue;
+                        case AdvanceResult.Continue_PushBackOne:
+                            buffSpan[0] = buffSpan[len - 1];
+                            BufferStart = 1;
+                            continue;
+                        default:
+                            return new ValueTask<(ReadRowEnding Ending, Memory<char> PushBack)?>(default((ReadRowEnding Ending, Memory<char> PushBack)?));
+                    }
                 }
             }
 
-            static async ValueTask<(RowEnding Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
+            // this implies we're only gonna read a row... so whatever
+            if (Ending == 0)
+            {
+                Ending = ReadRowEnding.CarriageReturnLineFeed;
+            }
+
+            return new ValueTask<(ReadRowEnding Ending, Memory<char> PushBack)?>((Ending, GetPushbackResult()));
+
+            static async ValueTask<(ReadRowEnding Ending, Memory<char> PushBack)?> DetectAsync_ContinueAfterReadAsync(
                 RowEndingDetector self,
                 ValueTask<int> waitFor,
-                ReaderStateMachine.PinHandle handle,
                 CancellationToken cancel
             )
             {
-                using (handle)
+                int end;
                 {
-                    int end;
-                    self.State.ReleasePinForAsync(waitFor);
+                    end = await ConfigureCancellableAwait(self, waitFor, cancel);
+                }
+
+                // handle the results that were in flight
+                var continueScan = true;
+
+                var buffMem = self.BufferOwner.Memory;
+
+                if (end == 0)
+                {
+                    // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                    if (self.BufferStart == 1 && buffMem.Span[0] == '\r')
                     {
-                        end = await ConfigureCancellableAwait(self, waitFor, cancel);
+                        self.Ending = ReadRowEnding.CarriageReturn;
+                    }
+                    goto end;
+                }
+                else
+                {
+                    self.AddToPushback(buffMem.Slice(self.BufferStart, end));
+
+                    var len = end + self.BufferStart;
+                    var res = self.Advance(buffMem.Span.Slice(0, len));
+                    switch (res)
+                    {
+                        case AdvanceResult.Continue:
+                            self.BufferStart = 0;
+                            goto loopStart;
+                        case AdvanceResult.Finished:
+                            continueScan = false;
+                            goto loopStart;
+                        case AdvanceResult.Continue_PushBackOne:
+                            buffMem.Span[0] = buffMem.Span[len - 1];
+                            self.BufferStart = 1;
+                            goto loopStart;
+                        default:
+                            return default;
+                    }
+                }
+
+
+// resume the loop
+loopStart:
+                while (continueScan)
+                {
+                    var mem = self.BufferOwner.Memory[self.BufferStart..];
+
+                    var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
+                    {
+                        end = await ConfigureCancellableAwait(self, readTask, cancel);
                     }
 
-                    // handle the results that were in flight
-                    var continueScan = true;
-
-                    var buffMem = self.BufferOwner.Memory;
+                    buffMem = self.BufferOwner.Memory;
 
                     if (end == 0)
                     {
                         // only need to check for '\r', because we'll never leave a '\n' pending the buffer
                         if (self.BufferStart == 1 && buffMem.Span[0] == '\r')
                         {
-                            self.Ending = RowEnding.CarriageReturn;
+                            self.Ending = ReadRowEnding.CarriageReturn;
                         }
-                        goto end;
+                        break;
                     }
                     else
                     {
@@ -194,129 +221,90 @@ namespace Cesil
                         {
                             case AdvanceResult.Continue:
                                 self.BufferStart = 0;
-                                goto loopStart;
+                                continue;
                             case AdvanceResult.Finished:
                                 continueScan = false;
-                                goto loopStart;
+                                continue;
                             case AdvanceResult.Continue_PushBackOne:
                                 buffMem.Span[0] = buffMem.Span[len - 1];
                                 self.BufferStart = 1;
-                                goto loopStart;
+                                continue;
                             default:
                                 return default;
                         }
                     }
-
-
-// resume the loop
-loopStart:
-                    while (continueScan)
-                    {
-                        var mem = self.BufferOwner.Memory[self.BufferStart..];
-
-                        var readTask = self.InnerAsync.Value.ReadAsync(mem, cancel);
-                        self.State.ReleasePinForAsync(readTask);
-                        {
-                            end = await ConfigureCancellableAwait(self, readTask, cancel);
-                        }
-
-                        buffMem = self.BufferOwner.Memory;
-
-                        if (end == 0)
-                        {
-                            // only need to check for '\r', because we'll never leave a '\n' pending the buffer
-                            if (self.BufferStart == 1 && buffMem.Span[0] == '\r')
-                            {
-                                self.Ending = RowEnding.CarriageReturn;
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            self.AddToPushback(buffMem.Slice(self.BufferStart, end));
-
-                            var len = end + self.BufferStart;
-                            var res = self.Advance(buffMem.Span.Slice(0, len));
-                            switch (res)
-                            {
-                                case AdvanceResult.Continue:
-                                    self.BufferStart = 0;
-                                    continue;
-                                case AdvanceResult.Finished:
-                                    continueScan = false;
-                                    continue;
-                                case AdvanceResult.Continue_PushBackOne:
-                                    buffMem.Span[0] = buffMem.Span[len - 1];
-                                    self.BufferStart = 1;
-                                    continue;
-                                default:
-                                    return default;
-                            }
-                        }
-                    }
+                }
 
 end:
-                    if (self.Ending == 0)
-                    {
-                        self.Ending = RowEnding.CarriageReturnLineFeed;
-                    }
-
-                    return (self.Ending, self.Pushback.Slice(0, self.PushbackLength));
+                if (self.Ending == 0)
+                {
+                    self.Ending = ReadRowEnding.CarriageReturnLineFeed;
                 }
+
+                return (self.Ending, self.GetPushbackResult());
+
             }
         }
 
-        internal (RowEnding Ending, Memory<char> PushBack)? Detect()
+        internal (ReadRowEnding Ending, Memory<char> PushBack)? Detect()
         {
-            using (State.Pin())
+            var buffSpan = BufferOwner.Memory.Span;
+
+            var continueScan = true;
+            while (continueScan)
             {
-                var buffSpan = BufferOwner.Memory.Span;
-
-                var continueScan = true;
-                while (continueScan)
+                var end = Inner.Value.Read(buffSpan[BufferStart..]);
+                if (end == 0)
                 {
-                    var end = Inner.Value.Read(buffSpan[BufferStart..]);
-                    if (end == 0)
+                    // only need to check for '\r', because we'll never leave a '\n' pending the buffer
+                    if (BufferStart == 1 && buffSpan[0] == '\r')
                     {
-                        // only need to check for '\r', because we'll never leave a '\n' pending the buffer
-                        if (BufferStart == 1 && buffSpan[0] == '\r')
-                        {
-                            Ending = RowEnding.CarriageReturn;
-                        }
-                        break;
+                        Ending = ReadRowEnding.CarriageReturn;
                     }
-                    else
-                    {
-                        AddToPushback(buffSpan.Slice(BufferStart, end));
-
-                        var len = end + BufferStart;
-                        var res = Advance(buffSpan.Slice(0, len));
-                        switch (res)
-                        {
-                            case AdvanceResult.Continue:
-                                BufferStart = 0;
-                                continue;
-                            case AdvanceResult.Finished:
-                                continueScan = false;
-                                continue;
-                            case AdvanceResult.Continue_PushBackOne:
-                                buffSpan[0] = buffSpan[len - 1];
-                                BufferStart = 1;
-                                continue;
-                            default:
-                                return null;
-                        }
-                    }
+                    break;
                 }
-
-                // this implies we're only gonna read a row... so whatever
-                if (Ending == 0)
+                else
                 {
-                    Ending = RowEnding.CarriageReturnLineFeed;
+                    AddToPushback(buffSpan.Slice(BufferStart, end));
+
+                    var len = end + BufferStart;
+                    var res = Advance(buffSpan.Slice(0, len));
+                    switch (res)
+                    {
+                        case AdvanceResult.Continue:
+                            BufferStart = 0;
+                            continue;
+                        case AdvanceResult.Finished:
+                            continueScan = false;
+                            continue;
+                        case AdvanceResult.Continue_PushBackOne:
+                            buffSpan[0] = buffSpan[len - 1];
+                            BufferStart = 1;
+                            continue;
+                        default:
+                            return null;
+                    }
                 }
             }
 
-            return (Ending, Pushback.Slice(0, PushbackLength));
+            // this implies we're only gonna read a row... so whatever
+            if (Ending == 0)
+            {
+                Ending = ReadRowEnding.CarriageReturnLineFeed;
+            }
+
+            return (Ending, GetPushbackResult());
+        }
+
+        private Memory<char> GetPushbackResult()
+        {
+            if (!PushbackOwner.HasValue)
+            {
+                // have to handle the "never actually pushed anything back"-case
+                return Memory<char>.Empty;
+            }
+
+            return Pushback.Slice(0, PushbackLength);
         }
 
         private void AddToPushback(ReadOnlyMemory<char> mem)
@@ -347,8 +335,6 @@ end:
 
         private AdvanceResult Advance(ReadOnlySpan<char> buffer)
         {
-            State.EnsurePinned();
-
             var bufferLen = buffer.Length;
 
             for (var i = 0; i < bufferLen; i++)
@@ -357,13 +343,16 @@ end:
 
                 var curState = State.CurrentState;
 
-                var legalToEndRecord = (((byte)curState) & ReaderStateMachine.CAN_END_RECORD_MASK) == ReaderStateMachine.CAN_END_RECORD_MASK;
+                var legalToEndRecord =
+                    ((((byte)curState) & ReaderStateMachine.CAN_END_RECORD_MASK) == ReaderStateMachine.CAN_END_RECORD_MASK) ||
+                    (curState == ReaderStateMachine.State.Record_Start) ||
+                    ((((byte)curState) & ReaderStateMachine.IN_COMMENT_MASK) == ReaderStateMachine.IN_COMMENT_MASK);
 
                 if (legalToEndRecord)
                 {
                     if (cc == '\n')
                     {
-                        Ending = RowEnding.LineFeed;
+                        Ending = ReadRowEnding.LineFeed;
                         return AdvanceResult.Finished;
                     }
 
@@ -379,11 +368,11 @@ end:
 
                         if (nextCC == '\n')
                         {
-                            Ending = RowEnding.CarriageReturnLineFeed;
+                            Ending = ReadRowEnding.CarriageReturnLineFeed;
                         }
                         else
                         {
-                            Ending = RowEnding.CarriageReturn;
+                            Ending = ReadRowEnding.CarriageReturn;
                         }
 
                         return AdvanceResult.Finished;

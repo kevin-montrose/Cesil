@@ -113,7 +113,7 @@ namespace Cesil
 
             if (!TargetType.IsAssignableFrom(fallbackConverter.TargetType))
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a fallback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
+                Throw.ArgumentException($"{fallbackConverter} does not produce a value assignable to {TargetType}, and cannot be used as a fallback for this {nameof(DynamicRowConverter)}", nameof(fallbackConverter));
             }
 
             return this.DoElse(fallbackConverter, null, null);
@@ -146,7 +146,8 @@ namespace Cesil
                 case BackingMode.Method: return new DynamicRowConverter(TargetType, Method.Value, newFallbacks);
             }
 
-            return Throw.ImpossibleException<DynamicRowConverter>($"Unexpected {nameof(BackingMode)}: {Mode}");
+            Throw.ImpossibleException($"Unexpected {nameof(BackingMode)}: {Mode}");
+            return default;
         }
 
         internal Expression MakeExpression(TypeInfo targetType, ParameterExpression rowVar, ParameterExpression contextVar, ParameterExpression outVar)
@@ -194,7 +195,8 @@ namespace Cesil
                             }
                             else
                             {
-                                return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                                Throw.ImpossibleException($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                                return default;
                             }
 
                             var iTestableDisposable = Expression.Convert(rowVar, Types.ITestableDisposable);
@@ -261,7 +263,8 @@ namespace Cesil
                             }
                             else
                             {
-                                return Throw.ImpossibleException<Expression>($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                                Throw.ImpossibleException($"Attempted to convert unexpected dynamic type ({rowVarType})");
+                                return default;
                             }
 
                             var iTestableDisposable = Expression.Convert(rowVar, Types.ITestableDisposable);
@@ -295,7 +298,8 @@ namespace Cesil
                             break;
                         }
 
-                        return Throw.ImpossibleException<Expression>($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
+                        Throw.ImpossibleException($"Constructor converter couldn't be turned into an expression, shouldn't be possible");
+                        return default;
                     }
                 case BackingMode.Method:
                     {
@@ -350,7 +354,8 @@ namespace Cesil
                         break;
                     }
                 default:
-                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             var finalExp = selfExp;
@@ -385,13 +390,13 @@ namespace Cesil
             var ps = constructor.GetParameters();
             if (ps.Length != 1)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a single object", nameof(constructor));
+                Throw.ArgumentException($"Constructor {constructor} must take a single object", nameof(constructor));
             }
 
             var p = ps[0].ParameterType.GetTypeInfo();
             if (p != Types.Object)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take a object, found a {p}", nameof(constructor));
+                Throw.ArgumentException($"Constructor {constructor} must take a object, found a {p}", nameof(constructor));
             }
 
             return new DynamicRowConverter(constructor, ImmutableArray<DynamicRowConverter>.Empty);
@@ -418,7 +423,7 @@ namespace Cesil
             var ps = constructor.GetParameters();
             if (ps.Length != cifp.Length)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"Constructor {constructor} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
+                Throw.InvalidOperationException($"Constructor {constructor} takes {ps.Length} parameters, while only {cifp.Length} column indexes were passed");
             }
 
             for (var i = 0; i < cifp.Length; i++)
@@ -426,7 +431,7 @@ namespace Cesil
                 var colIx = cifp[i].Index;
                 if (colIx < 0)
                 {
-                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForParameters));
+                    Throw.ArgumentException($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForParameters));
                 }
             }
 
@@ -458,7 +463,7 @@ namespace Cesil
             var consPs = constructor.GetParameters();
             if (consPs.Length != 0)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Constructor {constructor} must take zero parameters", nameof(constructor));
+                Throw.ArgumentException($"Constructor {constructor} must take zero parameters", nameof(constructor));
             }
 
             Utils.CheckArgumentNull(setters, nameof(setters));
@@ -469,7 +474,7 @@ namespace Cesil
 
             if (s.Length != cts.Length)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"{nameof(setters)} and {nameof(columnsForSetters)} must be the same length, found {s.Length} and {cts.Length}");
+                Throw.InvalidOperationException($"{nameof(setters)} and {nameof(columnsForSetters)} must be the same length, found {s.Length} and {cts.Length}");
             }
 
             var constructedType = constructor.DeclaringTypeNonNull();
@@ -486,7 +491,7 @@ namespace Cesil
 
                 if (!setterOnType.IsAssignableFrom(constructedType))
                 {
-                    return Throw.ArgumentException<DynamicRowConverter>($"Setter {setter} at {i} cannot be called on {constructedType}", nameof(setters));
+                    Throw.ArgumentException($"Setter {setter} at {i} cannot be called on {constructedType}", nameof(setters));
                 }
             }
 
@@ -495,7 +500,7 @@ namespace Cesil
                 var colIx = cts[i].Index;
                 if (colIx < 0)
                 {
-                    return Throw.ArgumentException<DynamicRowConverter>($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForSetters));
+                    Throw.ArgumentException($"Column indexes must be >= 0, found {colIx} at {i}", nameof(columnsForSetters));
                 }
             }
 
@@ -515,35 +520,35 @@ namespace Cesil
 
             if (!method.IsStatic)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must be static", nameof(method));
+                Throw.ArgumentException($"Method {method} must be static", nameof(method));
             }
 
             if (method.ReturnType.GetTypeInfo() != Types.Bool)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must return a bool", nameof(method));
+                Throw.ArgumentException($"Method {method} must return a bool", nameof(method));
             }
 
             var ps = method.GetParameters();
             if (ps.Length != 3)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method} must take three parameters", nameof(method));
+                Throw.ArgumentException($"Method {method} must take three parameters", nameof(method));
             }
 
             var p1 = ps[0].ParameterType.GetTypeInfo();
             if (p1 != Types.Object)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s first parameter must be an object", nameof(method));
+                Throw.ArgumentException($"Method {method}'s first parameter must be an object", nameof(method));
             }
 
             if (!ps[1].IsReadContextByRef(out string? msg))
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                Throw.ArgumentException($"Method {method}'s second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
             var p3 = ps[2].ParameterType.GetTypeInfo();
             if (!p3.IsByRef)
             {
-                return Throw.ArgumentException<DynamicRowConverter>($"Method {method}'s second parameter must be a by ref type", nameof(method));
+                Throw.ArgumentException($"Method {method}'s second parameter must be a by ref type", nameof(method));
             }
 
             var targetType = p3.GetElementTypeNonNull();
@@ -618,7 +623,8 @@ namespace Cesil
                             return $"{nameof(DynamicRowConverter)} using parameterless constructor {EmptyConstructor} then invoking ({setterMap}) creating {TargetType}";
                         }
 
-                        return Throw.ImpossibleException<string>("Shouldn't be possible");
+                        Throw.ImpossibleException("Shouldn't be possible");
+                        return default;
                     }
                 case BackingMode.Method:
                     {
@@ -629,7 +635,8 @@ namespace Cesil
                         return $"{nameof(DynamicRowConverter)} using delegate {Delegate} creation {TargetType}";
                     }
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -747,10 +754,12 @@ namespace Cesil
                         return true;
                     }
 
-                    return Throw.ImpossibleException<bool>($"Shouldn't be possible, unexpected Constructor configuration");
+                    Throw.ImpossibleException($"Shouldn't be possible, unexpected Constructor configuration");
+                    return default;
                 case BackingMode.Delegate: return Delegate.Value.Equals(rowConverter.Delegate.Value);
                 default:
-                    return Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {thisMode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {thisMode}");
+                    return default;
             }
         }
 
@@ -819,30 +828,30 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.Bool)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"Delegate must return a bool");
+                Throw.InvalidOperationException($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"Delegate must take 3 parameters");
+                Throw.InvalidOperationException($"Delegate must take 3 parameters");
             }
 
             var p1 = args[0].ParameterType.GetTypeInfo();
             if (p1 != Types.Object)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The first parameter to the delegate must be an object (can be dynamic in source)");
+                Throw.InvalidOperationException($"The first parameter to the delegate must be an object (can be dynamic in source)");
             }
 
             if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
+                Throw.InvalidOperationException($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
             }
 
             var createsRef = args[2].ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                return Throw.InvalidOperationException<DynamicRowConverter>($"The third parameter to the delegate must be an out type, was not by ref");
+                Throw.InvalidOperationException($"The third parameter to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementTypeNonNull();

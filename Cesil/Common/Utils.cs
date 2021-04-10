@@ -31,7 +31,7 @@ namespace Cesil
                     var o = values.GetValue(i);
                     if (o == null)
                     {
-                        return Throw.ImpossibleException<byte>("Shouldn't be possible");
+                        Throw.ImpossibleException("Shouldn't be possible");
                     }
 
                     ret |= (byte)o;
@@ -39,48 +39,6 @@ namespace Cesil
 
                 return ret;
             }
-        }
-
-        internal static ReadOnlyMemory<char> TrimLeadingWhitespace(ReadOnlyMemory<char> mem)
-        {
-            var skip = 0;
-            var span = mem.Span;
-            var len = span.Length;
-
-            while (skip < len)
-            {
-                var c = span[skip];
-                if (!char.IsWhiteSpace(c)) break;
-
-                skip++;
-            }
-
-            if (skip == 0) return mem;
-            if (skip == len) return ReadOnlyMemory<char>.Empty;
-
-            return mem[skip..];
-        }
-
-        internal static ReadOnlyMemory<char> TrimTrailingWhitespace(ReadOnlyMemory<char> mem)
-        {
-            var span = mem.Span;
-            var len = span.Length;
-            var start = len - 1;
-            var skip = start;
-
-            while (skip >= 0)
-            {
-                var c = span[skip];
-                if (!char.IsWhiteSpace(c)) break;
-
-                skip--;
-            }
-
-            if (skip == start) return mem;
-            if (skip == -1) return ReadOnlyMemory<char>.Empty;
-
-
-            return mem[0..(skip + 1)];
         }
 
         internal static bool IsLegalFlagEnum<T>(T e)
@@ -117,8 +75,7 @@ namespace Cesil
 
             if (isImmutable)
             {
-                Throw.ArgumentException<object>("Pass a builder to create immutable collections; passed an immutable collection directly, which will not reflect mutations", argName);
-                return;
+                Throw.ArgumentException("Pass a builder to create immutable collections; passed an immutable collection directly, which will not reflect mutations", argName);
             }
         }
 
@@ -132,7 +89,7 @@ namespace Cesil
         {
             if (arg == null)
             {
-                Throw.ArgumentNullException<object>(argName);
+                Throw.ArgumentNullException(argName);
             }
         }
 
@@ -142,7 +99,7 @@ namespace Cesil
         {
             if (toCheck == null)
             {
-                return Throw.ImpossibleException<T>("Expected non-null value, but found null");
+                Throw.ImpossibleException("Expected non-null value, but found null");
             }
 
             return toCheck;
@@ -154,7 +111,7 @@ namespace Cesil
         {
             if (toCheck == null)
             {
-                return Throw.ImpossibleException<T>("Expected non-null value, but found null");
+                Throw.ImpossibleException("Expected non-null value, but found null");
             }
 
             return toCheck.Value;
@@ -165,34 +122,13 @@ namespace Cesil
 
         internal static int FindNextIx(int startAt, ReadOnlySpan<char> haystack, ReadOnlySpan<char> needle)
         {
-            var c = needle[0];
-            var lookupFrom = startAt;
-
-tryAgain:
-
-            var ix = FindChar(haystack, lookupFrom, c);
-            if (ix == -1) return -1;
-
-            for (var i = 1; i < needle.Length; i++)
+            var ret = haystack[startAt..].IndexOf(needle);
+            if (ret == -1)
             {
-                var readIx = ix + i;
-                if (readIx == haystack.Length)
-                {
-                    // past the end
-                    return -1;
-                }
-
-                var shouldMatch = needle[i];
-                var actuallyIs = haystack[readIx];
-                if (shouldMatch != actuallyIs)
-                {
-                    lookupFrom = readIx;
-                    goto tryAgain;
-                }
+                return -1;
             }
 
-            // actually all matched, hooray!
-            return ix;
+            return ret + startAt;
         }
 
         internal static bool NullReferenceEquality<T>(T? a, T? b)
@@ -216,7 +152,7 @@ tryAgain:
             {
                 if (oldSize >= pool.MaxBufferSize)
                 {
-                    return Throw.InvalidOperationException<IMemoryOwner<T>>($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
+                    Throw.InvalidOperationException($"Needed a larger memory segment than could be requested, needed {newSize:N0}; {nameof(MemoryPool<T>.MaxBufferSize)} = {pool.MaxBufferSize:N0}");
                 }
 
                 requestSize = pool.MaxBufferSize;
@@ -237,76 +173,15 @@ tryAgain:
 
         internal static unsafe bool AreEqual(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
         {
-            var aLen = a.Length;
-            var bLen = b.Length;
-            if (aLen != bLen) return false;
-
-            fixed (char* aPin = a)
-            fixed (char* bPin = b)
-            {
-                return AreEqual(aLen, aPin, bPin);
-            }
+            return a.Equals(b, StringComparison.Ordinal);
         }
 
         internal static unsafe bool AreEqual(int length, void* aPtr, void* bPtr)
         {
-            if (length == 0) return true;
+            var aSpan = new ReadOnlySpan<char>(aPtr, length);
+            var bSpan = new ReadOnlySpan<char>(bPtr, length);
 
-            var longCount = length / CHARS_PER_LONG;
-            var leftOverAfterLong = length % CHARS_PER_LONG;
-            var hasLeftOverInt = leftOverAfterLong >= CHARS_PER_INT;
-            var leftOverAfterInt = leftOverAfterLong % CHARS_PER_INT;
-            var hasLeftOverChar = leftOverAfterInt != 0;
-
-            var aPtrL = (long*)aPtr;
-            var bPtrL = (long*)bPtr;
-
-            for (var i = 0; i < longCount; i++)
-            {
-                var aL = *aPtrL;
-                var bL = *bPtrL;
-
-                if (aL != bL)
-                {
-                    return false;
-                }
-
-                aPtrL++;
-                bPtrL++;
-            }
-
-            var aPtrI = (int*)aPtrL;
-            var bPtrI = (int*)bPtrL;
-
-            if (hasLeftOverInt)
-            {
-                var aI = *aPtrI;
-                var bI = *bPtrI;
-
-                if (aI != bI)
-                {
-                    return false;
-                }
-
-                aPtrI++;
-                bPtrI++;
-            }
-
-            if (hasLeftOverChar)
-            {
-                var aPtrC = (char*)aPtrI;
-                var bPtrC = (char*)bPtrI;
-
-                var aC = *aPtrC;
-                var bC = *bPtrC;
-
-                if (aC != bC)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return AreEqual(aSpan, bSpan);
         }
 
         internal static int FindChar(ReadOnlyMemory<char> head, int start, char c)
@@ -315,184 +190,10 @@ tryAgain:
         internal static int FindChar(ReadOnlySpan<char> span, int start, char c)
         {
             var subset = span.Slice(start);
-            var ret = FindChar(subset, c);
+            var ret = subset.IndexOf(c);
             if (ret == -1) return -1;
 
             return ret + start;
-        }
-
-        internal static int Find(ReadOnlySpan<char> span, int start, string str)
-        {
-            if (str.Length == 1)
-            {
-                return FindChar(span, start, str[0]);
-            }
-
-            var c1 = str[0];
-
-            var subset = span.Slice(start);
-            var ix = 0;
-            while (true)
-            {
-                var nextIx = FindChar(subset, ix, c1);
-                if (nextIx == -1)
-                {
-                    return -1;
-                }
-
-                if (str.Length + nextIx > subset.Length)
-                {
-                    return -1;
-                }
-
-                var tryAgain = false;
-                for (var i = 1; i < str.Length; i++)
-                {
-                    if (str[i] != subset[nextIx + i])
-                    {
-                        ix = nextIx + i;
-                        tryAgain = true;
-                        break;
-                    }
-                }
-
-                if (tryAgain)
-                {
-                    continue;
-                }
-
-                return nextIx + start;
-            }
-        }
-
-        // todo: we can probably kill all of this with MemoryExtensions, that'll vectorize nicely now
-        private static unsafe int FindChar(ReadOnlySpan<char> span, char c)
-        {
-            var cQuad =
-                (((ulong)c) << (sizeof(char) * 8 * 3)) |
-                (((ulong)c) << (sizeof(char) * 8 * 2)) |
-                (((ulong)c) << (sizeof(char) * 8 * 1)) |
-                (((ulong)c) << (sizeof(char) * 8 * 0));
-
-            var len = span.Length;
-            var longCount = len / CHARS_PER_LONG;
-            var leftOverAfterLong = span.Length % CHARS_PER_LONG;
-            var hasLeftOverInt = leftOverAfterLong >= CHARS_PER_INT;
-            var leftOverAfterInt = leftOverAfterLong % CHARS_PER_INT;
-            var hasLeftOverChar = leftOverAfterInt != 0;
-
-            fixed (char* cPtr = span)
-            {
-                var cPtrStr = cPtr;
-
-                var lPtr = (ulong*)cPtrStr;
-
-                for (var i = 0; i < longCount; i++)
-                {
-                    var fourChars = *lPtr;
-
-                    // see: https://kevinmontrose.com/2016/04/26/an-optimization-exercise/
-                    //      for more on this trick
-                    var masked = fourChars ^ cQuad;
-                    var temp = masked & 0x7FFF_7FFF_7FFF_7FFFUL;
-                    temp += 0x7FFF_7FFF_7FFF_7FFFUL;
-                    temp &= 0x8000_8000_8000_8000UL;
-                    temp |= masked;
-                    temp |= 0x7FFF_7FFF_7FFF_7FFFUL;
-                    temp = ~temp;
-                    var hasMatch = temp != 0;
-
-                    if (hasMatch)
-                    {
-                        if (BitConverter.IsLittleEndian)
-                        {
-                            // little endian, so the rightmost (LS byte) is the logical "first"
-                            var c1 = (char)(fourChars >> (sizeof(char) * 8 * 0));
-                            if (c1 == c)
-                            {
-                                return i * CHARS_PER_LONG;
-                            }
-
-                            var c2 = (char)(fourChars >> (sizeof(char) * 8 * 1));
-                            if (c2 == c)
-                            {
-                                return i * CHARS_PER_LONG + 1;
-                            }
-
-                            var c3 = (char)(fourChars >> (sizeof(char) * 8 * 2));
-                            if (c3 == c)
-                            {
-                                return i * CHARS_PER_LONG + 2;
-                            }
-
-                            // no need to check last char, by process of elimination
-                            return i * CHARS_PER_LONG + 3;
-                        }
-                        else
-                        {
-                            // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
-                        }
-                    }
-
-                    lPtr++;
-                }
-
-                var iPtr = (uint*)lPtr;
-
-                if (hasLeftOverInt)
-                {
-                    var cDouble = (uint)cQuad;
-                    var twoChars = *iPtr;
-
-                    // see: https://kevinmontrose.com/2016/04/26/an-optimization-exercise/
-                    //      for more on this trick
-                    var masked = twoChars ^ cDouble;
-                    var temp = masked & 0x7FFF_7FFFU;
-                    temp += 0x7FFF_7FFFU;
-                    temp &= 0x8000_8000U;
-                    temp |= masked;
-                    temp |= 0x7FFF_7FFFU;
-                    temp = ~temp;
-                    var hasMatch = temp != 0;
-
-                    if (hasMatch)
-                    {
-                        if (BitConverter.IsLittleEndian)
-                        {
-                            // little endian, so the rightmost (LS byte) is the logical "first"
-                            var c1 = (char)(twoChars >> (sizeof(char) * 8 * 0));
-                            if (c1 == c)
-                            {
-                                return longCount * CHARS_PER_LONG;
-                            }
-
-                            // no need to check last char, by process of elimination
-                            return longCount * CHARS_PER_LONG + 1;
-                        }
-                        else
-                        {
-                            // todo: figure out how to test this, and implement? (tracking issue: https://github.com/kevin-montrose/Cesil/issues/2)
-                            return Throw.NotImplementedException<int>("BigEndian support has not been implemented; see https://github.com/kevin-montrose/Cesil/issues/2");
-                        }
-                    }
-
-                    iPtr++;
-                }
-
-                if (hasLeftOverChar)
-                {
-                    var endCPtr = (char*)iPtr;
-                    var endC = *endCPtr;
-
-                    if (endC == c)
-                    {
-                        return len - 1;
-                    }
-                }
-            }
-
-            return -1;
         }
 
         internal static int FindChar(ReadOnlySequence<char> head, int start, char c)
@@ -501,14 +202,17 @@ tryAgain:
 
             if (head.IsSingleSegment)
             {
-                ret = FindChar(head.First.Span.Slice(start), c);
+                ret = head.First.Span[start..].IndexOf(c);
             }
             else
             {
                 ret = FindChar(head.Slice(start), c);
             }
 
-            if (ret == -1) return -1;
+            if (ret == -1)
+            {
+                return -1;
+            }
 
             return ret + start;
         }
@@ -517,7 +221,7 @@ tryAgain:
         {
             if (head.IsSingleSegment)
             {
-                return FindChar(head.First.Span, c);
+                return head.First.Span.IndexOf(c);
             }
 
             var curSegStart = 0;
@@ -526,7 +230,7 @@ tryAgain:
             {
                 var curSegEnd = curSegStart + cur.Length;
 
-                var inSeg = FindChar(cur.Span, c);
+                var inSeg = cur.Span.IndexOf(c);
                 if (inSeg != -1)
                 {
                     return curSegStart + inSeg;
@@ -542,7 +246,7 @@ tryAgain:
         {
             if (head.IsSingleSegment)
             {
-                return Find(head.First.Span, 0, str);
+                return head.First.Span.IndexOf(str);
             }
 
             var curSegStart = 0;
@@ -682,14 +386,14 @@ checkRemaining:
 
             if (escapedValueStartAndStop == null)
             {
-                return Throw.ImpossibleException<string>("Attempted to encode a string without a configured escape char, shouldn't be possible", options);
+                Throw.ImpossibleException("Attempted to encode a string without a configured escape char, shouldn't be possible", options);
             }
 
             var escapeChar = options.EscapedValueEscapeCharacter;
 
             if (escapeChar == null)
             {
-                return Throw.ImpossibleException<string>("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible", options);
+                Throw.ImpossibleException("Attempted to encode a string without a configured escape sequence start char, shouldn't be possible", options);
             }
 
             var raw = rawStr.AsMemory();
@@ -792,13 +496,13 @@ checkRemaining:
         {
             var ect = config.Options.ExtraColumnTreatment;
 
-            return 
+            return
                 ect switch
                 {
                     // no difference for static cases
                     ExtraColumnTreatment.Ignore or ExtraColumnTreatment.IncludeDynamic => ExtraColumnTreatment.Ignore,
                     ExtraColumnTreatment.ThrowException => ExtraColumnTreatment.ThrowException,
-                    _ => Throw.ImpossibleException<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config),
+                    _ => Throw.ImpossibleException_Returns<ExtraColumnTreatment, T>($"Unexpected {nameof(ExtraColumnTreatment)}: {ect}", config),
                 };
         }
 
@@ -840,8 +544,7 @@ tryAgain:
             {
                 if (i == columnNamesValue.Length)
                 {
-                    Throw.InvalidOperationException<Memory<DynamicCellValue>>("Too many cells returned, could not place in desired order");
-                    return;
+                    Throw.InvalidOperationException("Too many cells returned, could not place in desired order");
                 }
 
                 var name = columnNamesValue.GetColumnAt(i);
@@ -863,83 +566,7 @@ tryAgain:
 
             var comparer = columnNameSorter.Value;
 
-            Sort(rawSpan, comparer);
-        }
-
-        // todo: once MemoryExtensions.Sort() lands we can remove all of this (tracking issue: https://github.com/kevin-montrose/Cesil/issues/29)
-        //       coming as part of .NET 5, as a consequence of https://github.com/dotnet/runtime/issues/19969
-        internal static void Sort<T>(Span<T> span, Comparison<T> comparer)
-        {
-            // crummy quick sort implementation, all of this should get killed
-
-            var len = span.Length;
-
-            if (len <= 1)
-            {
-                return;
-            }
-
-            if (len == 2)
-            {
-                var a = span[0];
-                var b = span[1];
-
-                var res = comparer(a, b);
-                if (res > 0)
-                {
-                    span[0] = b;
-                    span[1] = a;
-                }
-
-                return;
-            }
-
-            // we only ever call this when the span isn't _already_ sorted,
-            //    so our sort can be really dumb
-            // basically Lomuto (see: https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme)
-
-            var splitIx = Partition(span, comparer);
-
-            var left = span[..splitIx];
-            var right = span[(splitIx + 1)..];
-
-            Sort(left, comparer);
-            Sort(right, comparer);
-
-            // re-order subSpan such that items before the returned index are less than the value
-            //    at the returned index
-            static int Partition(Span<T> subSpan, Comparison<T> comparer)
-            {
-                var len = subSpan.Length;
-
-                var pivotIx = len - 1;
-                var pivotItem = subSpan[pivotIx];
-
-                var i = 0;
-
-                for (var j = 0; j < len; j++)
-                {
-                    var item = subSpan[j];
-                    var res = comparer(item, pivotItem);
-
-                    if (res < 0)
-                    {
-                        Swap(subSpan, i, j);
-                        i++;
-                    }
-                }
-
-                Swap(subSpan, i, pivotIx);
-
-                return i;
-            }
-
-            static void Swap(Span<T> subSpan, int i, int j)
-            {
-                var oldI = subSpan[i];
-                subSpan[i] = subSpan[j];
-                subSpan[j] = oldI;
-            }
+            rawSpan.Sort(comparer);
         }
 
         // injected into delegates to perform runtime checks
@@ -949,8 +576,7 @@ tryAgain:
         {
             if (mustNotBeNull == null)
             {
-                Throw.InvalidOperationException<object>(message);
-                return;
+                Throw.InvalidOperationException(message);
             }
         }
 
@@ -960,8 +586,7 @@ tryAgain:
         {
             if (mustNotBeNull == null)
             {
-                Throw.InvalidOperationException<object>(message);
-                return;
+                Throw.InvalidOperationException(message);
             }
         }
 
@@ -975,8 +600,7 @@ tryAgain:
                 case NullHandling.AllowNull:
                     if (runtimeType.IsValueType && !runtimeType.IsNullableValueType(out _))
                     {
-                        Throw.InvalidOperationException<object>($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
-                        return;
+                        Throw.InvalidOperationException($"Type of {runtimeType} cannot be null at runtime, it is not legal to allow nulls");
                     }
 
                     break;
@@ -985,7 +609,7 @@ tryAgain:
                 case NullHandling.ForbidNull: break;
 
                 default:
-                    Throw.ImpossibleException<object>($"Unexpected {nameof(NullHandling)}: {newNullHandling}");
+                    Throw.ImpossibleException($"Unexpected {nameof(NullHandling)}: {newNullHandling}");
                     return;
             }
         }
@@ -1094,7 +718,8 @@ tryAgain:
             }
             else
             {
-                return Throw.ImpossibleException<ulong>($"Underlying type of an enum is impossible: {underlyingType}");
+                Throw.ImpossibleException($"Underlying type of an enum is impossible: {underlyingType}");
+                return default;
             }
 
             return result;
@@ -1152,10 +777,68 @@ tryAgain:
             }
             else
             {
-                return Throw.ImpossibleException<T>($"Underlying type of an enum is impossible: {underlyingType}");
+                Throw.ImpossibleException($"Underlying type of an enum is impossible: {underlyingType}");
+                return default;
             }
 
             return result;
+        }
+
+        internal static object?[] MakeArrayOfObjects(DynamicRow row, ITestableDisposable dependsOn, int? offset, int? length, TypeInfo[] colTypes)
+        {
+            var ret = new object?[length ?? colTypes.Length];
+
+            var i = 0;
+            var retIx = 0;
+            foreach (var col in row.Columns)
+            {
+                if (offset.HasValue && col.Index < offset.Value)
+                {
+                    goto end;
+                }
+
+                if (!row.IsSet(i))
+                {
+                    goto end;
+                }
+
+                var cell = row.GetCellAt(dependsOn, i);
+                if (cell == null)
+                {
+                    Throw.InvalidOperationException("Unexpected null value in dynamic row cell");
+                }
+
+                var colType = colTypes[retIx];
+
+                var parser = cell.GetParser(colType, out var ctx);
+                if (parser == null)
+                {
+                    Throw.InvalidOperationException($"No parser found to convert cell at index={i} to {colType}");
+                }
+
+                var delProvider = (ICreatesCacheableDelegate<Parser.DynamicParserDelegate>)parser;
+
+                var del = delProvider.Guarantee(row.Owner);
+
+                var data = cell.GetDataSpan();
+                if (!del(data, ctx, out var res))
+                {
+                    Throw.InvalidOperationException($"{nameof(Parser)} {parser} returned false");
+                }
+
+                ret[retIx] = res;
+                retIx++;
+
+end:
+                i++;
+
+                if (retIx == ret.Length)
+                {
+                    break;
+                }
+            }
+
+            return ret;
         }
     }
 }

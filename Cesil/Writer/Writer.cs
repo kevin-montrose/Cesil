@@ -33,7 +33,7 @@ namespace Cesil
 
                     if (!col.Write(row, ctx, Buffer))
                     {
-                        Throw.SerializationException<object>($"Could not write column {col.Name}, formatter returned false");
+                        Throw.SerializationException($"Could not write column {col.Name}, formatter returned false");
                     }
 
                     ReadOnlySequence<char> res = default;
@@ -51,7 +51,7 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
         }
 
@@ -69,8 +69,7 @@ namespace Cesil
 
                 if (commentCharNullable == null)
                 {
-                    Throw.InvalidOperationException<object>($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
-                    return;
+                    Throw.InvalidOperationException($"No {nameof(Options.CommentCharacter)} configured, cannot write a comment line");
                 }
 
                 var commentChar = commentCharNullable.Value;
@@ -127,7 +126,7 @@ namespace Cesil
             }
             catch (Exception e)
             {
-                Throw.PoisonAndRethrow<object>(this, e);
+                Throw.PoisonAndRethrow(this, e);
             }
         }
 
@@ -282,7 +281,7 @@ namespace Cesil
 
                     Buffer.Dispose();
 
-                    Throw.PoisonAndRethrow<object>(this, e);
+                    Throw.PoisonAndRethrow(this, e);
                 }
             }
         }

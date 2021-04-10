@@ -41,7 +41,7 @@ namespace Cesil
                     {
                         BackingMode.Method => Method.Value.IsStatic,
                         BackingMode.Delegate => !Takes.HasValue,
-                        _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
+                        _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {Mode}")
                     };
             }
         }
@@ -137,7 +137,8 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.InvalidOperationException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             return selfExp;
@@ -152,7 +153,7 @@ namespace Cesil
 
             if (TakesNullability == null)
             {
-                return Throw.InvalidOperationException<ShouldSerialize>($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
+                Throw.InvalidOperationException($"{this} does not take rows, and so cannot have a {nameof(NullHandling)} specified");
             }
 
             Utils.ValidateNullHandling(Takes.Value, nullHandling);
@@ -162,7 +163,7 @@ namespace Cesil
                 {
                     BackingMode.Method => new ShouldSerialize(Takes.Value, Method.Value, TakesContext, nullHandling),
                     BackingMode.Delegate => new ShouldSerialize(Takes.Value, Delegate.Value, nullHandling),
-                    _ => Throw.ImpossibleException<ShouldSerialize>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<ShouldSerialize>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -198,6 +199,7 @@ namespace Cesil
         /// If method is a static method, it must:
         ///   - take zero parameters or 
         ///   - take one parameter of the type being serialized or
+        ///   - take one parameter, of type `in WriteContext`
         ///   - take two parameters, the first being the type being serialized and the second being `in WriteContext`
         /// </summary>
         public static ShouldSerialize ForMethod(MethodInfo method)
@@ -207,7 +209,7 @@ namespace Cesil
             var ret = method.ReturnType.GetTypeInfo();
             if (ret != Types.Bool)
             {
-                return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} must return a boolean", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must return a boolean", nameof(method));
             }
 
             var args = method.GetParameters();
@@ -229,14 +231,15 @@ namespace Cesil
                 {
                     if (!args[0].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an instance method takes a parameter it must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"If an instance method takes a parameter it must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} cannot take parameters, it's an instance method", nameof(method));
+                    Throw.ArgumentException($"{nameof(method)} cannot take parameters, it's an instance method", nameof(method));
+                    return default;
                 }
             }
             else
@@ -257,7 +260,7 @@ namespace Cesil
                         var p0Elem = p0.GetElementTypeNonNull();
                         if (p0Elem != Types.WriteContext)
                         {
-                            return Throw.ArgumentException<ShouldSerialize>($"If an static method takes one parameter and it is by ref it must be a `in {nameof(WriteContext)}`, wasn't `{nameof(WriteContext)}`", nameof(method));
+                            Throw.ArgumentException($"If an static method takes one parameter and it is by ref it must be a `in {nameof(WriteContext)}`, wasn't `{nameof(WriteContext)}`", nameof(method));
                         }
 
                         takes = null;
@@ -279,14 +282,15 @@ namespace Cesil
 
                     if (!args[1].IsWriteContextByRef(out var msg))
                     {
-                        return Throw.ArgumentException<ShouldSerialize>($"If an static method takes two parameters the second must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
+                        Throw.ArgumentException($"If an static method takes two parameters the second must be a `in {nameof(WriteContext)}`; {msg}", nameof(method));
                     }
 
                     takesContext = true;
                 }
                 else
                 {
-                    return Throw.ArgumentException<ShouldSerialize>($"{nameof(method)} as a static method must take zero or one parameter", nameof(method));
+                    Throw.ArgumentException($"{nameof(method)} as a static method must take zero or one parameter", nameof(method));
+                    return default;
                 }
             }
 
@@ -357,7 +361,7 @@ namespace Cesil
                 {
                     BackingMode.Delegate => Delegate.Value == shouldSerialize.Delegate.Value,
                     BackingMode.Method => Method.Value == shouldSerialize.Method.Value,
-                    _ => Throw.ImpossibleException<bool>($"Unexpected {nameof(BackingMode)}: {mode}")
+                    _ => Throw.ImpossibleException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {mode}")
                 };
         }
 
@@ -402,7 +406,8 @@ namespace Cesil
                         return $"{nameof(ShouldSerialize)} backed by delegate {Delegate} taking {Takes} ({TakesNullability})";
                     }
                 default:
-                    return Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.InvalidOperationException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
         }
 
@@ -442,7 +447,7 @@ namespace Cesil
             var retType = mtd.ReturnType.GetTypeInfo();
             if (retType != Types.Bool)
             {
-                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must return boolean, found {retType}");
+                Throw.InvalidOperationException($"Delegate must return boolean, found {retType}");
             }
 
             var invoke = delType.GetMethodNonNull("Invoke");
@@ -452,7 +457,7 @@ namespace Cesil
             {
                 if (!ps[0].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes a single parameter it must be a `in {nameof(WriteContext)}`; {msg}");
+                    Throw.InvalidOperationException($"If an delegate takes a single parameter it must be a `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var reboundDel = System.Delegate.CreateDelegate(Types.StaticShouldSerializeDelegate, del, invoke);
@@ -467,7 +472,7 @@ namespace Cesil
 
                 if (!ps[1].IsWriteContextByRef(out var msg))
                 {
-                    return Throw.InvalidOperationException<ShouldSerialize>($"If an delegate takes two parameters the second must be an `in {nameof(WriteContext)}`; {msg}");
+                    Throw.InvalidOperationException($"If an delegate takes two parameters the second must be an `in {nameof(WriteContext)}`; {msg}");
                 }
 
                 var shouldSerializeDelType = Types.ShouldSerializeDelegate.MakeGenericType(takesType);
@@ -477,7 +482,8 @@ namespace Cesil
             }
             else
             {
-                return Throw.InvalidOperationException<ShouldSerialize>($"Delegate must take 1or 2 parameters");
+                Throw.InvalidOperationException($"Delegate must take 1or 2 parameters");
+                return default;
             }
         }
 

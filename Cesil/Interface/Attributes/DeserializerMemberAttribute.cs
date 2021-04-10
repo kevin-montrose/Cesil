@@ -128,7 +128,7 @@ namespace Cesil
             {
                 if (_Order == null)
                 {
-                    return Throw.InvalidOperationException<int>($"{nameof(Order)} not set, check {nameof(HasOrder)} before calling this.");
+                    Throw.InvalidOperationException($"{nameof(Order)} not set, check {nameof(HasOrder)} before calling this.");
                 }
 
                 return _Order.Value;
@@ -146,7 +146,7 @@ namespace Cesil
         public DeserializerMemberAttribute() { }
 
         /// <summary>
-        /// Returns true if the given GenerateDeserializableMemberAttribute is equal
+        /// Returns true if the given DeserializerMemberAttribute is equal
         /// to this one.
         /// </summary>
         public bool Equals(DeserializerMemberAttribute? attribute)
@@ -156,41 +156,18 @@ namespace Cesil
                 return false;
             }
 
-            if (Name != attribute.Name)
-            {
-                return false;
-            }
-
-            if (MemberRequired != attribute.MemberRequired)
-            {
-                return false;
-            }
-
-            if (ParserMethodName != attribute.ParserMethodName)
-            {
-                return false;
-            }
-
-            if (ParserType != attribute.ParserType)
-            {
-                return false;
-            }
-
-            if (ResetMethodName != attribute.ResetMethodName)
-            {
-                return false;
-            }
-
-            if (ResetType != attribute.ResetType)
-            {
-                return false;
-            }
-
-            return true;
+            return
+                MemberRequired == attribute.MemberRequired &&
+                Name == attribute.Name &&
+                _Order == attribute._Order &&
+                ParserMethodName == attribute.ParserMethodName &&
+                ParserType == attribute.ParserType &&
+                ResetMethodName == attribute.ResetMethodName &&
+                ResetType == attribute.ResetType;
         }
 
         /// <summary>
-        /// Return true if the given object is a GenerateDeserializableMemberAttribute 
+        /// Return true if the given object is a DeserializerMemberAttribute 
         ///   equal to this one.
         /// </summary>
         public override bool Equals(object? obj)
@@ -198,25 +175,25 @@ namespace Cesil
 
 
         /// <summary>
-        /// Returns a stable hash code for this GenerateDeserializableMemberAttribute.
+        /// Returns a stable hash code for this DeserializerMemberAttribute.
         /// </summary>
         public override int GetHashCode()
         => HashCode.Combine(Name, _Order, MemberRequired, ParserMethodName, ParserType, ResetMethodName, ResetType);
 
         /// <summary>
-        /// Compare two GenerateDeserializableMemberAttribute for equality
+        /// Compare two DeserializerMemberAttribute for equality
         /// </summary>
         public static bool operator ==(DeserializerMemberAttribute a, DeserializerMemberAttribute b)
         => Utils.NullReferenceEquality(a, b);
 
         /// <summary>
-        /// Compare two GenerateDeserializableMemberAttribute for inequality
+        /// Compare two DeserializerMemberAttribute for inequality
         /// </summary>
         public static bool operator !=(DeserializerMemberAttribute a, DeserializerMemberAttribute b)
         => !(a == b);
 
         /// <summary>
-        /// Returns a representation of this GenerateDeserializableMemberAttribute object.
+        /// Returns a representation of this DeserializerMemberAttribute object.
         /// 
         /// Only for debugging, this value is not guaranteed to be stable.
         /// </summary>

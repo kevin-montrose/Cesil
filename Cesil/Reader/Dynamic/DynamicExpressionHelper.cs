@@ -20,11 +20,13 @@ namespace Cesil
             if (indexes.Length != 1)
             {
                 var msg = Expression.Constant($"Only single indexers are supported.");
-                var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var call = Expression.Call(invalidOpCall, msg);
 
+                var throwBlock = Expression.Block(call, Expression.Default(Types.Object));
+
                 // we can cache this forever (for this type), since there's no scenario under which indexes != 1 becomes correct
-                return new DynamicMetaObject(call, restrictions);
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
 
             var assertNotDisposed = MakeAssertNotDisposedExpression(testableDisposable);
@@ -33,7 +35,7 @@ namespace Cesil
             var lengthVar = length == null ? Expressions.Constant_NullInt : length;
 
             var indexExp = indexes[0].Expression;
-            var indexType = indexes[0].RuntimeType.GetTypeInfo();
+            var indexType = indexes[0].RuntimeType?.GetTypeInfo();
 
             if (indexType == Types.Int)
             {
@@ -114,11 +116,13 @@ namespace Cesil
             // no binder
             {
                 var msg = Expression.Constant($"Only string, int, Index, and Range indexers are supported.");
-                var invalidOpCall = Methods.Throw.InvalidOperationExceptionOfObject;
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var call = Expression.Call(invalidOpCall, msg);
 
+                var throwBlock = Expression.Block(call, Expression.Default(Types.Object));
+
                 // we can cache this forever (for this type), since there's no scenario under which incorrect index types become correct
-                return new DynamicMetaObject(call, restrictions);
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
         }
 
@@ -201,18 +205,22 @@ namespace Cesil
 
             if (converter == null)
             {
-                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"No row converter discovered for {retType}"));
 
-                return new DynamicMetaObject(throwMsg, restrictions);
+                var throwBlock = Expression.Block(throwMsg, Expression.Default(retType));
+
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
 
             if (!retType.IsAssignableFrom(converter.TargetType))
             {
-                var invalidOpCall = Methods.Throw.InvalidOperationException.MakeGenericMethod(retType);
+                var invalidOpCall = Methods.Throw.InvalidOperationException;
                 var throwMsg = Expression.Call(invalidOpCall, Expression.Constant($"Row converter {converter} does not create a type assignable to {retType}, returns {converter.TargetType}"));
 
-                return new DynamicMetaObject(throwMsg, restrictions);
+                var throwBlock = Expression.Block(throwMsg, Expression.Default(retType));
+
+                return new DynamicMetaObject(throwBlock, restrictions);
             }
 
             var offsetVar = offset == null ? Expressions.Constant_NullInt : offset;
@@ -238,7 +246,7 @@ namespace Cesil
             var convertExp = converter.MakeExpression(retType, expressionVar, readCtxVar, outArg);
 
             var errorMsg = Expression.Constant($"{nameof(DynamicRowConverter)} ({converter}) could not convert dynamic row to {retType}");
-            var throwInvalidOp = Expression.Call(Methods.Throw.InvalidOperationExceptionOfObject, errorMsg);
+            var throwInvalidOp = Expression.Call(Methods.Throw.InvalidOperationException, errorMsg);
 
             var ifFalseThrow = Expression.IfThen(Expression.Not(convertExp), throwInvalidOp);
             statements.Add(ifFalseThrow);

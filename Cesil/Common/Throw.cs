@@ -14,7 +14,7 @@ namespace Cesil
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ImpossibleException<T, V>(
+        internal static void ImpossibleException<V>(
             string message,
             IBoundConfiguration<V> config,
             [CallerFilePath]
@@ -27,7 +27,20 @@ namespace Cesil
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ImpossibleException<T>(
+        internal static T ImpossibleException_Returns<T, V>(
+            string message,
+            IBoundConfiguration<V> config,
+            [CallerFilePath]
+            string? file = null,
+            [CallerMemberName]
+            string? member = null,
+            [CallerLineNumber]
+            int line = -1)
+        => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line, config);
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void ImpossibleException(
             string message,
             Options options,
             [CallerFilePath]
@@ -38,10 +51,23 @@ namespace Cesil
             int line = -1)
         => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line, options);
 
-        // prefer the other two impossible throwers to this one
+        // prefer the other impossible throwers to this one
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ImpossibleException<T>(
+        internal static void ImpossibleException(
+            string message,
+            [CallerFilePath]
+            string? file = null,
+            [CallerMemberName]
+            string? member = null,
+            [CallerLineNumber]
+            int line = -1)
+        => throw Cesil.ImpossibleException.Create(message, file ?? UNKNOWN_FILE, member ?? UNKNOWN_MEMBER, line);
+
+        // prefer the other impossible throwers to this one
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static T ImpossibleException_Returns<T>(
             string message,
             [CallerFilePath]
             string? file = null,
@@ -53,62 +79,67 @@ namespace Cesil
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T InvalidOperationException<T>(string message)
+        internal static void InvalidOperationException(string message)
         => throw new InvalidOperationException(message);
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T SerializationException<T>(string message)
+        internal static T InvalidOperationException_Returns<T>(string message)
+        => throw new InvalidOperationException(message);
+
+        [DoesNotReturn]
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static void SerializationException(string message)
         => throw new SerializationException(message);
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ArgumentException<T>(string message, string name)
+        internal static void ArgumentException(string message, string name)
         => throw new ArgumentException(message, name);
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ArgumentNullException<T>(string name)
+        internal static void ArgumentNullException(string name)
         => throw new ArgumentNullException(name);
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ObjectDisposedException<T>(string typeName)
+        internal static void ObjectDisposedException(string typeName)
         => throw new ObjectDisposedException($"Instance of {typeName}");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ArgumentOutOfRangeException<T>(string paramName, int val, int upperExclusive)
+        internal static void ArgumentOutOfRangeException(string paramName, int val, int upperExclusive)
         => throw new ArgumentOutOfRangeException(paramName, $"Expected between 0 and {upperExclusive}, was {val}");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ArgumentOutOfRangeException<T>(string paramName, Index ix, int effective, int upperExclusive)
+        internal static void ArgumentOutOfRangeException(string paramName, Index ix, int effective, int upperExclusive)
         => throw new ArgumentOutOfRangeException(paramName, $"Expected Index between 0 and {upperExclusive}, was {effective} ({ix})");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T ArgumentOutOfRangeException<T>(string paramName, Range r, int effectiveStart, int effectiveEnd, int upperExclusive)
+        internal static void ArgumentOutOfRangeException(string paramName, Range r, int effectiveStart, int effectiveEnd, int upperExclusive)
         => throw new ArgumentOutOfRangeException(paramName, $"Expected range end points to be between 0 and {upperExclusive}, was {effectiveStart}..{effectiveEnd} ({r})");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T KeyNotFoundException<T>(string key)
+        internal static void KeyNotFoundException(string key)
         => throw new KeyNotFoundException($"Key was {key}");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T NotSupportedException<T>(string type, string method)
+        internal static void NotSupportedException(string type, string method)
         => throw new NotSupportedException($"Method {method} on {type} is not supported");
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T OperationCanceledException<T>()
+        internal static void OperationCanceledException()
         => throw new OperationCanceledException();
 
         [DoesNotReturn]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T PoisonAndRethrow<T>(PoisonableBase toPoison, Exception e)
+        internal static void PoisonAndRethrow(PoisonableBase toPoison, Exception e)
         {
             toPoison.SetPoison(e);
 
@@ -120,8 +151,6 @@ namespace Cesil
             // automating poisoning is a nice bonus
             var wrapped = ExceptionDispatchInfo.Capture(e);
             wrapped.Throw();
-
-            return default;
         }
 
         [DoesNotReturn]
@@ -135,15 +164,10 @@ namespace Cesil
             }
             else
             {
-                msg = $"Failed to parse \"{new string(data)}\"using {parser}";
+                msg = $"Failed to parse \"{new string(data)}\" using {parser}";
             }
 
             throw new SerializationException(msg);
         }
-
-        [DoesNotReturn]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static T NotImplementedException<T>(string message)
-        => throw new NotImplementedException(message);
     }
 }

@@ -61,7 +61,7 @@ namespace Cesil
             {
                 if (_Order == null)
                 {
-                    return Throw.InvalidOperationException<int>($"{nameof(Order)} not set, check {nameof(HasOrder)} before calling this.");
+                    Throw.InvalidOperationException($"{nameof(Order)} not set, check {nameof(HasOrder)} before calling this.");
                 }
 
                 return _Order.Value;

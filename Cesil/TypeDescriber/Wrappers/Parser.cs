@@ -140,7 +140,7 @@ namespace Cesil
                     BackingMode.Method => new Parser(Method.Value, Creates, newFallbacks, createsNullabilityValue),
                     BackingMode.Delegate => new Parser(Delegate.Value, Creates, newFallbacks, createsNullabilityValue),
                     BackingMode.Constructor => new Parser(Constructor.Value, newFallbacks, createsNullabilityValue),
-                    _ => Throw.ImpossibleException<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.ImpossibleException_Returns<Parser>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -154,7 +154,7 @@ namespace Cesil
 
             if (!Creates.IsAssignableFrom(fallbackParser.Creates))
             {
-                return Throw.ArgumentException<Parser>($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
+                Throw.ArgumentException($"{fallbackParser} does not provide a value assignable to {Creates}, and cannot be used as a fallback for this {nameof(Parser)}", nameof(fallbackParser));
             }
 
             var newCreatesNullability = Utils.CommonOutputNullHandling(CreatesNullability, fallbackParser.CreatesNullability);
@@ -177,7 +177,7 @@ namespace Cesil
                     BackingMode.Constructor => new Parser(Constructor.Value, _Fallbacks, nullHandling),
                     BackingMode.Delegate => new Parser(Delegate.Value, Creates, _Fallbacks, nullHandling),
                     BackingMode.Method => new Parser(Method.Value, Creates, _Fallbacks, nullHandling),
-                    _ => Throw.ImpossibleException<Parser>($"Unexpected: {nameof(BackingMode)}: {Mode}")
+                    _ => Throw.ImpossibleException_Returns<Parser>($"Unexpected: {nameof(BackingMode)}: {Mode}")
                 };
         }
 
@@ -239,7 +239,8 @@ namespace Cesil
                     }
                     break;
                 default:
-                    return Throw.ImpossibleException<Expression>($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    Throw.ImpossibleException($"Unexpected {nameof(BackingMode)}: {Mode}");
+                    return default;
             }
 
             var finalExp = selfExp;
@@ -275,25 +276,25 @@ namespace Cesil
             //   and return a boolean
             if (!method.IsStatic)
             {
-                return Throw.ArgumentException<Parser>($"{nameof(method)} be a static method", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} be a static method", nameof(method));
             }
 
             var args = method.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.ArgumentException<Parser>($"{nameof(method)} must have three parameters", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must have three parameters", nameof(method));
             }
 
             var p0 = args[0].ParameterType.GetTypeInfo();
 
             if (p0 != Types.ReadOnlySpanOfChar)
             {
-                return Throw.ArgumentException<Parser>($"The first parameter of {nameof(method)} must be a {nameof(ReadOnlySpan<char>)}", nameof(method));
+                Throw.ArgumentException($"The first parameter of {nameof(method)} must be a {nameof(ReadOnlySpan<char>)}", nameof(method));
             }
 
             if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.ArgumentException<Parser>($"The second parameter of {nameof(method)} must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
+                Throw.ArgumentException($"The second parameter of {nameof(method)} must be an `in {nameof(ReadContext)}`; {msg}", nameof(method));
             }
 
             var arg2 = args[2];
@@ -301,7 +302,7 @@ namespace Cesil
 
             if (!p2.IsByRef)
             {
-                return Throw.ArgumentException<Parser>($"The third parameter of {nameof(method)} must be an out", nameof(method));
+                Throw.ArgumentException($"The third parameter of {nameof(method)} must be an out", nameof(method));
             }
 
             var underlying = p2.GetElementTypeNonNull();
@@ -310,7 +311,7 @@ namespace Cesil
             var parserRetType = method.ReturnType.GetTypeInfo();
             if (parserRetType != Types.Bool)
             {
-                return Throw.ArgumentException<Parser>($"{nameof(method)} must return a bool", nameof(method));
+                Throw.ArgumentException($"{nameof(method)} must return a bool", nameof(method));
             }
 
             return new Parser(method, underlying, ImmutableArray<Parser>.Empty, nullability);
@@ -337,7 +338,7 @@ namespace Cesil
 
                 if (firstP != Types.ReadOnlySpanOfChar)
                 {
-                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
+                    Throw.ArgumentException($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
                 }
             }
             else if (ps.Length == 2)
@@ -346,17 +347,17 @@ namespace Cesil
 
                 if (firstP != Types.ReadOnlySpanOfChar)
                 {
-                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
+                    Throw.ArgumentException($"{nameof(constructor)} first parameter must be a ReadOnlySpan<char>", nameof(constructor));
                 }
 
                 if (!ps[1].IsReadContextByRef(out var msg))
                 {
-                    return Throw.ArgumentException<Parser>($"{nameof(constructor)} second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(constructor));
+                    Throw.ArgumentException($"{nameof(constructor)} second parameter must be an `in {nameof(ReadContext)}`; {msg}", nameof(constructor));
                 }
             }
             else
             {
-                return Throw.ArgumentException<Parser>($"{nameof(constructor)} must have one or two parameters", nameof(constructor));
+                Throw.ArgumentException($"{nameof(constructor)} must have one or two parameters", nameof(constructor));
             }
 
             return new Parser(constructor, ImmutableArray<Parser>.Empty, NullHandling.CannotBeNull);
@@ -422,7 +423,7 @@ namespace Cesil
                     BackingMode.Method => $"{nameof(Parser)} backed by method {Method} creating {Creates} ({CreatesNullability})",
                     BackingMode.Delegate => $"{nameof(Parser)} backed by delegate {Delegate} creating {Creates} ({CreatesNullability})",
                     BackingMode.Constructor => $"{nameof(Parser)} backed by constructor {Constructor} creating {Creates}",
-                    _ => Throw.InvalidOperationException<string>($"Unexpected {nameof(BackingMode)}: {Mode}"),
+                    _ => Throw.InvalidOperationException_Returns<string>($"Unexpected {nameof(BackingMode)}: {Mode}"),
                 };
         }
 
@@ -444,7 +445,7 @@ namespace Cesil
                     BackingMode.Constructor => Constructor.Value == parser.Constructor.Value,
                     BackingMode.Delegate => Delegate.Value == parser.Delegate.Value,
                     BackingMode.Method => Method.Value == parser.Method.Value,
-                    _ => Throw.InvalidOperationException<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}"),
+                    _ => Throw.InvalidOperationException_Returns<bool>($"Unexpected {nameof(BackingMode)}: {selfMode}"),
                 };
         }
 
@@ -518,31 +519,31 @@ namespace Cesil
             var ret = mtd.ReturnType.GetTypeInfo();
             if (ret != Types.Bool)
             {
-                return Throw.InvalidOperationException<Parser>($"Delegate must return a bool");
+                Throw.InvalidOperationException($"Delegate must return a bool");
             }
 
             var args = mtd.GetParameters();
             if (args.Length != 3)
             {
-                return Throw.InvalidOperationException<Parser>($"Delegate must take 3 parameters");
+                Throw.InvalidOperationException($"Delegate must take 3 parameters");
             }
 
             var p0 = args[0].ParameterType.GetTypeInfo();
             if (p0 != Types.ReadOnlySpanOfChar)
             {
-                return Throw.InvalidOperationException<Parser>($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
+                Throw.InvalidOperationException($"The first parameter to the delegate must be a {nameof(ReadOnlySpan<char>)}");
             }
 
             if (!args[1].IsReadContextByRef(out var msg))
             {
-                return Throw.InvalidOperationException<Parser>($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
+                Throw.InvalidOperationException($"The second parameter to the delegate must be an `in {nameof(ReadContext)}`; {msg}");
             }
 
             var p2 = args[2];
             var createsRef = p2.ParameterType.GetTypeInfo();
             if (!createsRef.IsByRef)
             {
-                return Throw.InvalidOperationException<Parser>($"The third parameter to the delegate must be an out type, was not by ref");
+                Throw.InvalidOperationException($"The third parameter to the delegate must be an out type, was not by ref");
             }
 
             var creates = createsRef.GetElementTypeNonNull();

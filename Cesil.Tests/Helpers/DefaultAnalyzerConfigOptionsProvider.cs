@@ -2,7 +2,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
     internal sealed class DefaultAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
     {

@@ -2,6 +2,6 @@
 {
     internal static class Constants
     {
-        public const string EXPECTED_CESIL_VERSION = "0.8.0";
+        public const string EXPECTED_CESIL_VERSION = "0.9.0";
     }
 }

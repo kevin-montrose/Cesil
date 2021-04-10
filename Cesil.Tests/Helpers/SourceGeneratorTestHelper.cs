@@ -1,17 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Cesil.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Cesil.SourceGenerator.Tests
+namespace Cesil.Tests
 {
-    internal static class TestHelper
+    internal static class SourceGeneratorTestHelper
     {
+        internal static AttributedMembers GetAttributedMembers(this Compilation compilation)
+        {
+            var generator = new AttriberMembersGenerator();
+            var parseOptions = (CSharpParseOptions)compilation.SyntaxTrees.ElementAt(0).Options;
+
+            var generators = ImmutableArray.Create(generator);
+
+            GeneratorDriver driver = CSharpGeneratorDriver.Create(generators, parseOptions: parseOptions);
+
+            driver.RunGeneratorsAndUpdateCompilation(compilation, out var producedCompilation, out var diagnostics);
+
+            return generator.Members;
+        }
+
         internal static string GetFlaggedSource(Diagnostic diag)
         {
             var tree = diag.Location.SourceTree;
@@ -50,7 +66,9 @@ namespace Cesil.SourceGenerator.Tests
         internal static Task<Compilation> GetCompilationAsync(
             string testFile,
             string caller,
-            NullableContextOptions nullableContext
+            NullableContextOptions nullableContext,
+            bool addCesilReferences = true,
+            IEnumerable<string> doNotAddReferences = null
         )
         {
             var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")).Split(Path.PathSeparator);
@@ -58,7 +76,7 @@ namespace Cesil.SourceGenerator.Tests
 
             var references = systemAssemblies.Select(s => MetadataReference.CreateFromFile(s)).ToList();
 
-            var projectName = $"Cesil.SourceGenerator.Tests.{nameof(TestHelper)}";
+            var projectName = $"Cesil.Tests.{nameof(SourceGeneratorTestHelper)}";
             var projectId = ProjectId.CreateNewId(projectName);
 
             var compilationOptions =
@@ -68,7 +86,7 @@ namespace Cesil.SourceGenerator.Tests
                     nullableContextOptions: nullableContext
                 );
 
-            var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp8);
+            var parseOptions = new CSharpParseOptions(LanguageVersion.CSharp9);
 
             var projectInfo =
                 ProjectInfo.Create(
@@ -88,8 +106,28 @@ namespace Cesil.SourceGenerator.Tests
                     .CurrentSolution
                     .AddProject(projectInfo);
 
+            var x = references.Where(r => r.FilePath.Contains("Serialization")).ToList();
+
             foreach (var reference in references)
             {
+                var path = reference.Display ?? "";
+                var ix = path.LastIndexOf('\\');
+                if(ix != -1)
+                {
+                    path = path.Substring(ix + 1);
+                }
+
+                var iy = path.LastIndexOf('.');
+                if(iy != -1)
+                {
+                    path = path.Substring(0, iy);
+                }
+
+                if (doNotAddReferences?.Contains(path) ?? false)
+                {
+                    continue;
+                }
+
                 solution = solution.AddMetadataReference(projectId, reference);
             }
 
@@ -101,59 +139,11 @@ namespace Cesil.SourceGenerator.Tests
             project = project.AddDocument(csFile, testFile).Project;
 
             // find the Cesil folder to include code from
-            string cesilRootDir;
+            if (addCesilReferences)
             {
-                cesilRootDir = Environment.CurrentDirectory;
-                while (cesilRootDir != null)
-                {
-                    if (Directory.GetDirectories(cesilRootDir).Any(c => Path.GetFileName(c) == "Cesil"))
-                    {
-                        cesilRootDir = Path.Combine(cesilRootDir, "Cesil");
-                        break;
-                    }
-
-                    cesilRootDir = Path.GetDirectoryName(cesilRootDir);
-                }
-
-                if (cesilRootDir == null)
-                {
-                    throw new Exception("Couldn't find Cesil root directory, are tests not being run from within the solution?");
-                }
+                var cesilRef = GetCesilReference();
+                project = project.AddMetadataReference(cesilRef);
             }
-
-            //var files =
-            //    new[]
-            //    {
-            //        new [] { "Interface", "Attributes", "GenerateSerializerAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "SerializerMemberAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "DeserializerMemberAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "GenerateDeserializerAttribute.cs" },
-            //        new [] { "Interface", "Attributes", "DeserializerInstanceProviderAttribute.cs" },
-            //        new [] { "Context", "WriteContext.cs" },
-            //        new [] { "Context", "ReadContext.cs" },
-            //        new [] { "TypeDescriber", "Wrappers", "MemberRequired.cs" },
-            //        new [] { "TypeDescriber", "Wrappers", "EmitDefaultValue.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "ConstructorInstanceProviderAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "DoesNotEmitDefaultValueAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "GeneratedSourceVersionAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "IsRequiredAttribute.cs" },
-            //        new [] { "TypeDescriber", "GeneratorAttributes", "SetterBackedByConstructorParameterAttribute.cs" },
-            //    };
-
-            //foreach (var fileParts in files)
-            //{
-            //    var toAddFilePath = cesilRootDir;
-            //    foreach (var part in fileParts)
-            //    {
-            //        toAddFilePath = Path.Combine(toAddFilePath, part);
-            //    }
-
-            //    var fileText = File.ReadAllText(toAddFilePath);
-            //    project = project.AddDocument(Path.GetFileName(toAddFilePath), fileText).Project;
-            //}
-
-            var cesilRef = GetCesilReference();
-            project = project.AddMetadataReference(cesilRef);
 
             var netstandardRef = GetNetStandard20Reference();
             project = project.AddMetadataReference(netstandardRef);
@@ -161,7 +151,7 @@ namespace Cesil.SourceGenerator.Tests
             return project.GetCompilationAsync();
         }
 
-        private static MetadataReference GetCesilReference()
+        internal static MetadataReference GetCesilReference()
         {
             var optsType = typeof(Options);
             var cesilLoc = optsType.Assembly.Location;
@@ -169,7 +159,7 @@ namespace Cesil.SourceGenerator.Tests
             return MetadataReference.CreateFromFile(cesilLoc);
         }
 
-        private static MetadataReference GetNetStandard20Reference()
+        internal static MetadataReference GetNetStandard20Reference()
         {
             var asm = Assembly.Load("netstandard, Version=2.0.0.0").Location;
 

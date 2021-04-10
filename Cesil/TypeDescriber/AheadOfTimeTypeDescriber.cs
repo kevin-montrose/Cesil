@@ -14,7 +14,7 @@ namespace Cesil
     /// </summary>
     public sealed class AheadOfTimeTypeDescriber : ITypeDescriber, IEquatable<AheadOfTimeTypeDescriber>
     {
-        internal const string CURRENT_CESIL_VERSION = "0.8.0";
+        internal const string CURRENT_CESIL_VERSION = "0.9.0";
 #pragma warning disable CS0618 // Obsolete to prevent clients from using them directly, but fine for us
         private const GeneratedSourceVersionAttribute.GeneratedTypeKind SERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer;
         private const GeneratedSourceVersionAttribute.GeneratedTypeKind DESERIALIZER_KIND = GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer;
@@ -54,7 +54,7 @@ namespace Cesil
                 var consOnTypes = forConstructorAttrs.Select(x => x.ForType).Distinct().ToImmutableArray();
                 if (consOnTypes.Length > 1)
                 {
-                    return Throw.ImpossibleException<InstanceProvider?>($"Generated type {forType} claims multiple constructors for an InstanceProvider.");
+                    Throw.ImpossibleException($"Generated type {paired} (for {forType}) claims multiple constructors for an InstanceProvider.");
                 }
 
                 var consOnType = consOnTypes.Single();
@@ -63,7 +63,7 @@ namespace Cesil
                 var cons = consOnType.GetConstructor(AllInstance, null, consParams, null);
                 if (cons == null)
                 {
-                    return Throw.ImpossibleException<InstanceProvider?>($"Generated type {forType} claims a constructor for an InstanceProvider that could not be found.");
+                    Throw.ImpossibleException($"Generated type {paired} (for {forType}) claims a constructor for an InstanceProvider that could not be found.");
                 }
 
                 return InstanceProvider.ForConstructorWithParametersInner(cons, paired);
@@ -103,18 +103,20 @@ namespace Cesil
 #pragma warning disable CS0618 // These are obsolete to prevent clients from using them, but they are fine for us.
                 var isRequired = colReaderMtd.GetCustomAttribute<IsRequiredAttribute>() != null;
                 var setterBackedByParameter = colReaderMtd.GetCustomAttribute<SetterBackedByConstructorParameterAttribute>();
+                var setterIsInitOnly = colReaderMtd.GetCustomAttribute<SetterBackedByInitOnlyPropertyAttribute>();
 #pragma warning restore CS0618
 
                 Setter setter;
-
-                if (setterBackedByParameter == null)
+                if (setterBackedByParameter == null && setterIsInitOnly == null)
                 {
+                    // directly a method
                     var setterName = $"__Column_{i}_Setter";
                     var setterMtd = paired.GetMethodNonNull(setterName, PublicStatic);
                     setter = Setter.ForMethod(setterMtd);
                 }
-                else
+                else if (setterBackedByParameter != null)
                 {
+                    // parameter to constructor
                     if (consPs == null)
                     {
                         var ip = GetInstanceProvider(forType);
@@ -124,13 +126,27 @@ namespace Cesil
                         consPs = cons.GetParameters();
                     }
 
-                    if (setterBackedByParameter.Index < 0 || setterBackedByParameter.Index >= consPs.Length)
+                    var consParameterIndex = setterBackedByParameter.Index;
+                    if (consParameterIndex < 0 || consParameterIndex >= consPs.Length)
                     {
-                        return Throw.ImpossibleException<IEnumerable<DeserializableMember>>($"Setter for column {i} claims to be backed by constructor parameter, but its position is out of bound");
+                        Throw.ImpossibleException($"Setter for column {i} claims to be backed by constructor parameter, but its position is out of bounds (index={consParameterIndex})");
                     }
 
                     var p = consPs[setterBackedByParameter.Index];
                     setter = Setter.ForConstructorParameter(p);
+                }
+                else
+                {
+                    // init only property
+                    var initOnly = Utils.NonNull(setterIsInitOnly);
+
+                    var prop = forType.GetProperty(initOnly.PropertyName, initOnly.BindingFlags);
+                    if (prop == null)
+                    {
+                        Throw.ImpossibleException($"Setter for column {i} claims to be backed by init-only property {initOnly.PropertyName} with bindings ({initOnly.BindingFlags}), but it could not be found");
+                    }
+
+                    setter = Setter.ForProperty(prop);
                 }
 
                 var resetMethodName = $"__Column_{i}_Reset";
@@ -223,7 +239,7 @@ namespace Cesil
             var inAssembly = forType.Assembly;
             var candidateTypes = inAssembly.GetTypes();
 
-            TypeInfo? pairedType = null;
+            TypeInfo? ret = null;
 
             foreach (var tRaw in candidateTypes)
             {
@@ -233,31 +249,38 @@ namespace Cesil
                 var attr = t.GetCustomAttribute<GeneratedSourceVersionAttribute>();
 #pragma warning restore CS0618
 
-                if(!(attr is object))
+                if (attr is not object)
                 {
                     continue;
                 }
 
-                var version = attr.Version;
-
-                if (version != CURRENT_CESIL_VERSION)
+                var meantForType = attr.ForType.GetTypeInfo();
+                if (meantForType != forType)
                 {
-                    return Throw.InvalidOperationException<TypeInfo>($"Found a generated type ({t}) with an unexpected version ({version}), suggesting the generated source does not match the version ({CURRENT_CESIL_VERSION}) of Cesil in use.");
+                    continue;
                 }
 
-                var meantForType = attr.ForType.GetTypeInfo();
                 var candidateMode = attr.Kind;
-                
                 if (candidateMode != forMode)
                 {
                     continue;
                 }
 
-                pairedType = t;
-                break;
+                var version = attr.Version;
+                if (version != CURRENT_CESIL_VERSION)
+                {
+                    Throw.ImpossibleException($"Found a generated type ({t}) with an unexpected version ({version}), suggesting the generated source does not match the version ({CURRENT_CESIL_VERSION}) of Cesil in use.");
+                }
+
+                if (ret != null)
+                {
+                    Throw.ImpossibleException($"Found multiple generated types for {forType}");
+                }
+
+                ret = t;
             }
 
-            return pairedType;
+            return ret;
         }
 
         /// <summary>
@@ -265,21 +288,30 @@ namespace Cesil
         /// </summary>
         [return: IntentionallyExposedPrimitive("Count, int is the best option")]
         public int GetCellsForDynamicRow(in WriteContext context, object row, Span<DynamicCellValue> cells)
-        => Throw.NotImplementedException<int>($"{nameof(GetCellsForDynamicRow)} is not supported when using {nameof(AheadOfTimeTypeDescriber)}");
+        {
+            Throw.NotSupportedException(nameof(AheadOfTimeTypeDescriber), nameof(GetCellsForDynamicRow));
+            return default;
+        }
 
         /// <summary>
         /// This operation is not supported with AheadOfTimeTypeDescriber
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public Parser? GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)
-        => Throw.NotImplementedException<Parser>($"{nameof(GetDynamicCellParserFor)} is not supported when using {nameof(AheadOfTimeTypeDescriber)}");
+        {
+            Throw.NotSupportedException(nameof(AheadOfTimeTypeDescriber), nameof(GetDynamicCellParserFor));
+            return default;
+        }
 
         /// <summary>
         /// This operation is not supported with AheadOfTimeTypeDescriber
         /// </summary>
         [return: NullableExposed("May not be known, null is cleanest way to handle it")]
         public DynamicRowConverter? GetDynamicRowConverter(in ReadContext context, IEnumerable<ColumnIdentifier> columns, TypeInfo targetType)
-        => Throw.NotImplementedException<DynamicRowConverter>($"{nameof(GetDynamicRowConverter)} is not supported when using {nameof(AheadOfTimeTypeDescriber)}");
+        {
+            Throw.NotSupportedException(nameof(AheadOfTimeTypeDescriber), nameof(GetDynamicRowConverter));
+            return default;
+        }
 
         /// <summary>
         /// Returns true if this and the given AheadOfTimeTypeDescribers are equal

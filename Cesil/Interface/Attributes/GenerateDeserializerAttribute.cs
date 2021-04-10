@@ -15,7 +15,9 @@ namespace Cesil
     /// for this type will do no runtime code generation.
     /// 
     /// You can customize the behavior of the generated deserializer with [DataMemberAttribute],
-    /// and [GenerateDeserializableMemberAttribute] attributes.
+    /// and [DeserializaerMemberAttribute] attributes.
+    /// 
+    /// Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
     public sealed class GenerateDeserializerAttribute : Attribute, IEquatable<GenerateDeserializerAttribute>

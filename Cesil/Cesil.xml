@@ -45,13 +45,6 @@
               store (1 int + the char data).
             </summary>
         </member>
-        <member name="M:Cesil.BoundConfigurationBase`1.#ctor(System.Buffers.MemoryPool{System.Char},System.Buffers.MemoryPool{Cesil.DynamicCellValue})">
-            <summary>
-            For some testing scenarios.
-            
-            Created instance is nearly unusable.
-            </summary>
-        </member>
         <member name="M:Cesil.BoundConfigurationBase`1.#ctor(Cesil.Options)">
             <summary>
             For working with dynamic.
@@ -281,7 +274,8 @@
             <summary>
             Default options:
               - separator = ,
-              - row endings = \r\n
+              - automatically detects row endings when reading
+              - when writing, row endings = \r\n
               - escaped columns start = "
               - escape character = "
               - detects headers when reading
@@ -302,7 +296,8 @@
             <summary>
             Default options for dynamic operations:
               - separator = ,
-              - row endings = \r\n
+              - automatically detects row endings when reading
+              - when writing, row endings = \r\n
               - escaped columns start = "
               - escape character = "
               - assumes headers are present
@@ -340,9 +335,14 @@
               will be null for formats without an EscapedValueStartAndEnd.
             </summary>
         </member>
-        <member name="P:Cesil.Options.RowEnding">
+        <member name="P:Cesil.Options.ReadRowEnding">
             <summary>
-            The sequence of characters used to end a row.
+            The sequence of characters used to end a row when reading.
+            </summary>
+        </member>
+        <member name="P:Cesil.Options.WriteRowEnding">
+            <summary>
+            The sequence of characters used to end a row when writing.
             </summary>
         </member>
         <member name="P:Cesil.Options.ReadHeader">
@@ -488,9 +488,14 @@
               MUST be null for formats without an EscapedValueStartAndEnd.
             </summary>
         </member>
-        <member name="P:Cesil.OptionsBuilder.RowEnding">
+        <member name="P:Cesil.OptionsBuilder.ReadRowEnding">
             <summary>
-            The sequence of characters used to end a row.
+            The sequence of characters used to end a row when reading.
+            </summary>
+        </member>
+        <member name="P:Cesil.OptionsBuilder.WriteRowEnding">
+            <summary>
+            The sequence of characters used to end a row when writing.
             </summary>
         </member>
         <member name="P:Cesil.OptionsBuilder.ReadHeader">
@@ -599,9 +604,14 @@
             If this is non-null, EscapedValueStartAndEnd must also be non-null.
             </summary>
         </member>
-        <member name="M:Cesil.OptionsBuilder.WithRowEnding(Cesil.RowEnding)">
+        <member name="M:Cesil.OptionsBuilder.WithReadRowEnding(Cesil.ReadRowEnding)">
             <summary>
-            Set the sequence of characters that will end a row.
+            Set the sequence of characters that will end a row when reading.
+            </summary>
+        </member>
+        <member name="M:Cesil.OptionsBuilder.WithWriteRowEnding(Cesil.WriteRowEnding)">
+            <summary>
+            Set the sequence of characters that will end a row when write.
             </summary>
         </member>
         <member name="M:Cesil.OptionsBuilder.WithReadHeader(Cesil.ReadHeader)">
@@ -710,30 +720,29 @@
               are not present.
             </summary>
         </member>
-        <member name="T:Cesil.RowEnding">
+        <member name="T:Cesil.ReadRowEnding">
             <summary>
-            Which character sequence ends a row.
+            Which character sequence will end a row when reading rows.
             
-            This can be determined automatically with
-              Detect.
+            This can be determined automatically with Detect.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.CarriageReturn">
+        <member name="F:Cesil.ReadRowEnding.CarriageReturn">
             <summary>
             The \r character.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.LineFeed">
+        <member name="F:Cesil.ReadRowEnding.LineFeed">
             <summary>
             The \n character.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.CarriageReturnLineFeed">
+        <member name="F:Cesil.ReadRowEnding.CarriageReturnLineFeed">
             <summary>
             \r\n character sequence.
             </summary>
         </member>
-        <member name="F:Cesil.RowEnding.Detect">
+        <member name="F:Cesil.ReadRowEnding.Detect">
             <summary>
             Will probe the CSV and discover which sequence of characters
                indicates the end of a record.
@@ -825,6 +834,28 @@
         <member name="F:Cesil.WriteHeader.Never">
             <summary>
             No header row will be written the writer.
+            </summary>
+        </member>
+        <member name="T:Cesil.WriteRowEnding">
+            <summary>
+            Which character sequence will end a row when writing rows.
+            
+            Unlike with ReadRowEnding, this cannot be inferred.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.CarriageReturnLineFeed">
+            <summary>
+            \r\n character sequence.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.LineFeed">
+            <summary>
+            The \n character.
+            </summary>
+        </member>
+        <member name="F:Cesil.WriteRowEnding.CarriageReturn">
+            <summary>
+            The \r character.
             </summary>
         </member>
         <member name="T:Cesil.WriteTrailingRowEnding">
@@ -1317,34 +1348,34 @@
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.Equals(Cesil.DeserializerMemberAttribute)">
             <summary>
-            Returns true if the given GenerateDeserializableMemberAttribute is equal
+            Returns true if the given DeserializerMemberAttribute is equal
             to this one.
             </summary>
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.Equals(System.Object)">
             <summary>
-            Return true if the given object is a GenerateDeserializableMemberAttribute 
+            Return true if the given object is a DeserializerMemberAttribute 
               equal to this one.
             </summary>
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.GetHashCode">
             <summary>
-            Returns a stable hash code for this GenerateDeserializableMemberAttribute.
+            Returns a stable hash code for this DeserializerMemberAttribute.
             </summary>
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.op_Equality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">
             <summary>
-            Compare two GenerateDeserializableMemberAttribute for equality
+            Compare two DeserializerMemberAttribute for equality
             </summary>
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.op_Inequality(Cesil.DeserializerMemberAttribute,Cesil.DeserializerMemberAttribute)">
             <summary>
-            Compare two GenerateDeserializableMemberAttribute for inequality
+            Compare two DeserializerMemberAttribute for inequality
             </summary>
         </member>
         <member name="M:Cesil.DeserializerMemberAttribute.ToString">
             <summary>
-            Returns a representation of this GenerateDeserializableMemberAttribute object.
+            Returns a representation of this DeserializerMemberAttribute object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
@@ -1362,7 +1393,9 @@
             for this type will do no runtime code generation.
             
             You can customize the behavior of the generated deserializer with [DataMemberAttribute],
-            and [GenerateDeserializableMemberAttribute] attributes.
+            and [DeserializaerMemberAttribute] attributes.
+            
+            Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.
             </summary>
         </member>
         <member name="P:Cesil.GenerateDeserializerAttribute.InstanceProviderType">
@@ -1444,7 +1477,9 @@
             for this type will do no runtime code generation.
             
             You can customize the behavior of the generated serialize with [DataMemberAttribute],
-            and [GenerateSerializableMemberAttribute] attributes.
+            and [SerializerMemberAttribute] attributes.
+            
+            Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.
             </summary>
         </member>
         <member name="M:Cesil.GenerateSerializerAttribute.#ctor">
@@ -2651,8 +2686,12 @@
               with a [DataMember], and will call Reset() methods.  Expects
               a public parameterless constructor for any deserialized types.
             
-            It will convert cells to most built-in types, and map rows to
-              POCOs, ValueTuples, Tuples, and IEnumerables.
+            It will also deserialize records using their primary constructor.
+              Names, Parsers, Resets, and Order may be customized with records but
+              not Setters and MemberRequireds.
+            
+            It will convert dynamic cells to most built-in types, and map dynamoc
+              rows to POCOs, ValueTuples, Tuples, and IEnumerables.
             
             This type is unsealed to allow for easy extension of it's behavior.
             </summary>
@@ -2763,7 +2802,7 @@
         </member>
         <member name="M:Cesil.DefaultTypeDescriber.GetParser(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
-            Returns the parser to use for the column that maps to the given property when deserialized.
+            Returns the parser to use for the column that maps to the given field when deserialized.
             
             Override to tweak behavior.
             </summary>
@@ -2788,6 +2827,37 @@
         <member name="M:Cesil.DefaultTypeDescriber.GetReset(System.Reflection.TypeInfo,System.Reflection.FieldInfo)">
             <summary>
             Returns the reset method, if any, to call prior to deserializing the given field.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetDeserializationName(System.Reflection.TypeInfo,System.Reflection.ParameterInfo)">
+            <summary>
+            Returns the name of the column that should map to the given constructor parameter when deserialized.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetParser(System.Reflection.TypeInfo,System.Reflection.ParameterInfo)">
+            <summary>
+            Returns the parser to use for the column that maps to the given constructor parameter when deserialized.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetOrder(System.Reflection.TypeInfo,System.Reflection.ParameterInfo)">
+            <summary>
+            Returns the index of the column that should map to the given constructor parameter.  Headers
+              can change this during deserialization.
+              
+            Return null to leave order unspecified.
+            
+            Override to tweak behavior.
+            </summary>
+        </member>
+        <member name="M:Cesil.DefaultTypeDescriber.GetReset(System.Reflection.TypeInfo,System.Reflection.ParameterInfo)">
+            <summary>
+            Returns the reset method, if any, to call prior to deserializing the given constructor parameter.
             
             Override to tweak behavior.
             </summary>
@@ -3430,6 +3500,64 @@
         <member name="M:Cesil.SetterBackedByConstructorParameterAttribute.ToString">
             <summary>
             Returns a representation of this SetterBackedByConstructorParameterAttribute object.
+            
+            Only for debugging, this value is not guaranteed to be stable.
+            </summary>
+        </member>
+        <member name="T:Cesil.SetterBackedByInitOnlyPropertyAttribute">
+            <summary>
+            Automatically attached to generated methods depending on runtime behavior.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="P:Cesil.SetterBackedByInitOnlyPropertyAttribute.PropertyName">
+            <summary>
+            Property annotated method corresponds to.
+            </summary>
+        </member>
+        <member name="P:Cesil.SetterBackedByInitOnlyPropertyAttribute.BindingFlags">
+            <summary>
+            BindingFlags for property.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.#ctor(System.String,System.Reflection.BindingFlags)">
+            <summary>
+            Create a new SetterBackedByInitOnlyPropertyAttribute.
+            
+            You should not use this directly.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.Equals(System.Object)">
+            <summary>
+            Return true if the given object is a SetterBackedByInitOnlyPropertyAttribute 
+              equal to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.Equals(Cesil.SetterBackedByInitOnlyPropertyAttribute)">
+            <summary>
+            Returns true if the given SetterBackedByInitOnlyPropertyAttribute is equal
+              to this one.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.GetHashCode">
+            <summary>
+            Returns a stable hash code for this SetterBackedByInitOnlyPropertyAttribute.
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.op_Equality(Cesil.SetterBackedByInitOnlyPropertyAttribute,Cesil.SetterBackedByInitOnlyPropertyAttribute)">
+            <summary>
+            Compare two SetterBackedByInitOnlyPropertyAttribute for equality
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.op_Inequality(Cesil.SetterBackedByInitOnlyPropertyAttribute,Cesil.SetterBackedByInitOnlyPropertyAttribute)">
+            <summary>
+            Compare two SetterBackedByInitOnlyPropertyAttribute for inequality
+            </summary>
+        </member>
+        <member name="M:Cesil.SetterBackedByInitOnlyPropertyAttribute.ToString">
+            <summary>
+            Returns a representation of this SetterBackedByInitOnlyPropertyAttribute object.
             
             Only for debugging, this value is not guaranteed to be stable.
             </summary>
@@ -5282,6 +5410,7 @@
             If method is a static method, it must:
               - take zero parameters or 
               - take one parameter of the type being serialized or
+              - take one parameter, of type `in WriteContext`
               - take two parameters, the first being the type being serialized and the second being `in WriteContext`
             </summary>
         </member>

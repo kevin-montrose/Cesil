@@ -613,7 +613,12 @@ namespace Cesil.Tests
         {
 #pragma warning disable CS0649
             public int Foo;
+            public int Foo2;
 #pragma warning restore CS0649
+        }
+
+        private class _EqualityNullSafe_2
+        {
         }
 
         [Fact]
@@ -627,32 +632,38 @@ namespace Cesil.Tests
                 if (t == typeof(Options))
                 {
                     var ex = Options.Default;
+                    var exOther = Options.DynamicDefault;
                     var exNull1 = default(Options);
                     var exNull2 = default(Options);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(DeserializableMember))
                 {
                     var ex = DeserializableMember.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo)));
+                    var exOther = DeserializableMember.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo2)));
                     var exNull1 = default(DeserializableMember);
                     var exNull2 = default(DeserializableMember);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(SerializableMember))
                 {
                     var ex = SerializableMember.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo)));
+                    var exOther = SerializableMember.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo2)));
                     var exNull1 = default(SerializableMember);
                     var exNull2 = default(SerializableMember);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(DynamicRowConverter))
                 {
@@ -664,12 +675,21 @@ namespace Cesil.Tests
                                 return true;
                             }
                         );
+                    var exOther =
+                        DynamicRowConverter.ForDelegate(
+                            (object _, in ReadContext __, out int res) =>
+                            {
+                                res = 2;
+                                return true;
+                            }
+                        );
                     var exNull1 = default(DynamicRowConverter);
                     var exNull2 = default(DynamicRowConverter);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(Formatter))
                 {
@@ -680,32 +700,44 @@ namespace Cesil.Tests
                                 return true;
                             }
                         );
+                    var exOther =
+                        Formatter.ForDelegate(
+                            (int _, in WriteContext __, IBufferWriter<char> ___) =>
+                            {
+                                return false;
+                            }
+                        );
                     var exNull1 = default(Formatter);
                     var exNull2 = default(Formatter);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(Getter))
                 {
                     var ex = Getter.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo)));
+                    var exOther = Getter.ForField(typeof(_EqualityNullSafe).GetField(nameof(_EqualityNullSafe.Foo2)));
                     var exNull1 = default(Getter);
                     var exNull2 = default(Getter);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(InstanceProvider))
                 {
                     var ex = InstanceProvider.ForParameterlessConstructor(typeof(_EqualityNullSafe).GetConstructor(Type.EmptyTypes));
+                    var exOther = InstanceProvider.ForParameterlessConstructor(typeof(_EqualityNullSafe_2).GetConstructor(Type.EmptyTypes));
                     var exNull1 = default(InstanceProvider);
                     var exNull2 = default(InstanceProvider);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(Parser))
                 {
@@ -716,23 +748,34 @@ namespace Cesil.Tests
                                 x = 1;
                                 return true;
                             }
-                        ); ;
+                        );
+                    var exOther =
+                        Parser.ForDelegate(
+                            (ReadOnlySpan<char> _, in ReadContext __, out int x) =>
+                            {
+                                x = 2;
+                                return true;
+                            }
+                        );
                     var exNull1 = default(Parser);
                     var exNull2 = default(Parser);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(Reset))
                 {
                     var ex = Reset.ForDelegate((in ReadContext _) => { });
+                    var exOther = Reset.ForDelegate((in ReadContext _) => { Console.WriteLine(); });
                     var exNull1 = default(Reset);
                     var exNull2 = default(Reset);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(Setter))
                 {
@@ -740,12 +783,17 @@ namespace Cesil.Tests
                         Setter.ForDelegate(
                             (int _, in ReadContext __) => { }
                         );
+                    var exOther =
+                        Setter.ForDelegate(
+                            (int _, in ReadContext __) => { Console.WriteLine(); }
+                        );
                     var exNull1 = default(Setter);
                     var exNull2 = default(Setter);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(ShouldSerialize))
                 {
@@ -753,16 +801,22 @@ namespace Cesil.Tests
                         ShouldSerialize.ForDelegate(
                             (in WriteContext _) => true
                         );
+                    var exOther =
+                        ShouldSerialize.ForDelegate(
+                            (in WriteContext _) => false
+                        );
                     var exNull1 = default(ShouldSerialize);
                     var exNull2 = default(ShouldSerialize);
                     CommonNonOperatorChecks(ex, exNull1, exNull2);
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(ManualTypeDescriber))
                 {
                     var ex = ManualTypeDescriber.CreateBuilder().ToManualTypeDescriber();
+                    var exOther = ManualTypeDescriber.CreateBuilder().WithFallbackTypeDescriber(TypeDescribers.AheadOfTime).ToManualTypeDescriber();
                     var exNull1 = default(ManualTypeDescriber);
                     var exNull2 = default(ManualTypeDescriber);
 
@@ -770,10 +824,12 @@ namespace Cesil.Tests
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(SurrogateTypeDescriber))
                 {
                     var ex = SurrogateTypeDescriberBuilder.CreateBuilder().ToSurrogateTypeDescriber();
+                    var exOther = SurrogateTypeDescriberBuilder.CreateBuilder().WithFallbackTypeDescriber(TypeDescribers.AheadOfTime).ToSurrogateTypeDescriber();
                     var exNull1 = default(SurrogateTypeDescriber);
                     var exNull2 = default(SurrogateTypeDescriber);
 
@@ -781,10 +837,12 @@ namespace Cesil.Tests
                     Assert.False(ex == exNull1);
                     Assert.False(exNull1 == ex);
                     Assert.True(exNull1 == exNull2);
+                    Assert.True(ex != exOther);
                 }
                 else if (t == typeof(GenerateSerializerAttribute))
                 {
                     var attr = new GenerateSerializerAttribute();
+                    var attrOther = new GenerateSerializerAttribute();
                     var attrNull1 = default(GenerateSerializerAttribute);
                     var attrNull2 = default(GenerateSerializerAttribute);
 
@@ -792,10 +850,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.False(attr != attrOther);
                 }
                 else if (t == typeof(SerializerMemberAttribute))
                 {
                     var attr = new SerializerMemberAttribute();
+                    var attrOther = new SerializerMemberAttribute { EmitDefaultValue = EmitDefaultValue.No };
                     var attrNull1 = default(SerializerMemberAttribute);
                     var attrNull2 = default(SerializerMemberAttribute);
 
@@ -803,10 +863,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
                 else if (t == typeof(AheadOfTimeTypeDescriber))
                 {
                     var td = new AheadOfTimeTypeDescriber();
+                    var tdOther = new AheadOfTimeTypeDescriber();
                     var tdNull1 = default(AheadOfTimeTypeDescriber);
                     var tdNull2 = default(AheadOfTimeTypeDescriber);
 
@@ -814,10 +876,12 @@ namespace Cesil.Tests
                     Assert.False(td == tdNull1);
                     Assert.False(tdNull1 == td);
                     Assert.True(tdNull1 == tdNull2);
+                    Assert.False(td != tdOther);
                 }
                 else if (t == typeof(DeserializerMemberAttribute))
                 {
                     var attr = new DeserializerMemberAttribute();
+                    var attrOther = new DeserializerMemberAttribute { Order = 123 };
                     var attrNull1 = default(DeserializerMemberAttribute);
                     var attrNull2 = default(DeserializerMemberAttribute);
 
@@ -825,10 +889,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
                 else if (t == typeof(GenerateDeserializerAttribute))
                 {
                     var attr = new GenerateDeserializerAttribute();
+                    var attrOther = new GenerateDeserializerAttribute { InstanceProviderMethodName = "fooo" };
                     var attrNull1 = default(GenerateDeserializerAttribute);
                     var attrNull2 = default(GenerateDeserializerAttribute);
 
@@ -836,10 +902,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
                 else if (t == typeof(DeserializerInstanceProviderAttribute))
                 {
                     var attr = new DeserializerInstanceProviderAttribute();
+                    var attrOther = new DeserializerInstanceProviderAttribute();
                     var attrNull1 = default(DeserializerInstanceProviderAttribute);
                     var attrNull2 = default(DeserializerInstanceProviderAttribute);
 
@@ -847,11 +915,13 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.False(attr != attrOther);
                 }
 #pragma warning disable CS0618 // Obsolete to prevent clients from using it
                 else if (t == typeof(GeneratedSourceVersionAttribute))
                 {
                     var attr = new GeneratedSourceVersionAttribute("1.0.0", Types.String, GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer);
+                    var attrOther = new GeneratedSourceVersionAttribute("2.0.0", Types.String, GeneratedSourceVersionAttribute.GeneratedTypeKind.Serializer);
                     var attrNull1 = default(GeneratedSourceVersionAttribute);
                     var attrNull2 = default(GeneratedSourceVersionAttribute);
 
@@ -859,10 +929,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
                 else if (t == typeof(DoesNotEmitDefaultValueAttribute))
                 {
                     var attr = new DoesNotEmitDefaultValueAttribute();
+                    var attrOther = new DoesNotEmitDefaultValueAttribute();
                     var attrNull1 = default(DoesNotEmitDefaultValueAttribute);
                     var attrNull2 = default(DoesNotEmitDefaultValueAttribute);
 
@@ -870,10 +942,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.False(attr != attrOther);
                 }
                 else if (t == typeof(IsRequiredAttribute))
                 {
                     var attr = new IsRequiredAttribute();
+                    var attrOther = new IsRequiredAttribute();
                     var attrNull1 = default(IsRequiredAttribute);
                     var attrNull2 = default(IsRequiredAttribute);
 
@@ -881,10 +955,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.False(attr != attrOther);
                 }
                 else if (t == typeof(SetterBackedByConstructorParameterAttribute))
                 {
                     var attr = new SetterBackedByConstructorParameterAttribute(1);
+                    var attrOther = new SetterBackedByConstructorParameterAttribute(2);
                     var attrNull1 = default(SetterBackedByConstructorParameterAttribute);
                     var attrNull2 = default(SetterBackedByConstructorParameterAttribute);
 
@@ -892,10 +968,12 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
                 else if (t == typeof(ConstructorInstanceProviderAttribute))
                 {
                     var attr = new ConstructorInstanceProviderAttribute(typeof(object), typeof(object), 1);
+                    var attrOther = new ConstructorInstanceProviderAttribute(typeof(object), typeof(object), 2);
                     var attrNull1 = default(ConstructorInstanceProviderAttribute);
                     var attrNull2 = default(ConstructorInstanceProviderAttribute);
 
@@ -903,6 +981,20 @@ namespace Cesil.Tests
                     Assert.False(attr == attrNull1);
                     Assert.False(attrNull1 == attr);
                     Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
+                }
+                else if (t == typeof(SetterBackedByInitOnlyPropertyAttribute))
+                {
+                    var attr = new SetterBackedByInitOnlyPropertyAttribute("Foo", default);
+                    var attrOther = new SetterBackedByInitOnlyPropertyAttribute("Bar", default);
+                    var attrNull1 = default(SetterBackedByInitOnlyPropertyAttribute);
+                    var attrNull2 = default(SetterBackedByInitOnlyPropertyAttribute);
+
+                    CommonNonOperatorChecks(attr, attrNull1, attrNull2);
+                    Assert.False(attr == attrNull1);
+                    Assert.False(attrNull1 == attr);
+                    Assert.True(attrNull1 == attrNull2);
+                    Assert.True(attr != attrOther);
                 }
 #pragma warning restore CS0618
                 else
@@ -916,6 +1008,7 @@ namespace Cesil.Tests
             {
                 Assert.NotNull(ex);
                 Assert.True(ex.Equals(ex));
+                Assert.Equal(ex.GetHashCode(), ex.GetHashCode());
                 Assert.True(ex.Equals((object)ex));
                 Assert.Null(exNull1);
                 Assert.Null(exNull2);
@@ -1224,7 +1317,7 @@ namespace Cesil.Tests
                 }
                 else if (t == typeof(SerializerMemberAttribute))
                 {
-                    msg = InvokeToString_GenerateSerializableMemberAttribute();
+                    msg = InvokeToString_GenerateSerializerMemberAttribute();
                 }
 #pragma warning disable CS0618 // Obsolete to prevent clients from using them
                 else if (t == typeof(GeneratedSourceVersionAttribute))
@@ -1247,10 +1340,14 @@ namespace Cesil.Tests
                 {
                     msg = InvokeToString_ConstructorInstanceProviderAttribute();
                 }
+                else if (t == typeof(SetterBackedByInitOnlyPropertyAttribute))
+                {
+                    msg = InvokeToString_SetterBackedByInitOnlyPropertyAttribute();
+                }
 #pragma warning restore CS0618
                 else if (t == typeof(DeserializerMemberAttribute))
                 {
-                    msg = InvokeToString_GenerateDeserializableMemberAttribute();
+                    msg = InvokeToString_DeserializerMemberAttribute();
                 }
                 else if (t == typeof(GenerateDeserializerAttribute))
                 {
@@ -1258,7 +1355,7 @@ namespace Cesil.Tests
                 }
                 else if (t == typeof(DeserializerInstanceProviderAttribute))
                 {
-                    msg = InvokeToString_GenerateDeserializableInstanceProviderAttribute();
+                    msg = InvokeToString_DeserializerInstanceProviderAttribute();
                 }
                 else
                 {
@@ -1287,6 +1384,13 @@ namespace Cesil.Tests
             }
 
 #pragma warning disable CS0618 // Obsolete to prevent clients from using them
+            static string InvokeToString_SetterBackedByInitOnlyPropertyAttribute()
+            {
+                var attr = new SetterBackedByInitOnlyPropertyAttribute("foo", default);
+
+                return attr.ToString();
+            }
+
             static string InvokeToString_ConstructorInstanceProviderAttribute()
             {
                 var attr = new ConstructorInstanceProviderAttribute(typeof(object), typeof(object), 1);
@@ -1318,13 +1422,13 @@ namespace Cesil.Tests
             }
 #pragma warning restore CS0618
 
-            static string InvokeToString_GenerateDeserializableInstanceProviderAttribute()
+            static string InvokeToString_DeserializerInstanceProviderAttribute()
             {
                 var attr = new DeserializerInstanceProviderAttribute();
                 return attr.ToString();
             }
 
-            static string InvokeToString_GenerateDeserializableMemberAttribute()
+            static string InvokeToString_DeserializerMemberAttribute()
             {
                 var attr = new DeserializerMemberAttribute();
                 return attr.ToString();
@@ -1336,7 +1440,7 @@ namespace Cesil.Tests
                 return attr.ToString();
             }
 
-            static string InvokeToString_GenerateSerializableMemberAttribute()
+            static string InvokeToString_GenerateSerializerMemberAttribute()
             {
                 var attr = new SerializerMemberAttribute();
                 return attr.ToString();
@@ -2225,7 +2329,7 @@ namespace Cesil.Tests
                     [typeof(object).GetTypeInfo()] = new[] { "obj", "context", "row", "value" },
                     [typeof(int).GetTypeInfo()] = new[] { "index", "sizeHint" },
                     [typeof(int?).GetTypeInfo()] = new[] { "sizeHint" },
-                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data", "valueSeparator", "version" },
+                    [typeof(string).GetTypeInfo()] = new[] { "name", "comment", "path", "data", "valueSeparator", "version", "propertyName" },
                     [typeof(char?).GetTypeInfo()] = new[] { "commentStart", "escapeStart", "escape" },
                     [typeof(byte).GetTypeInfo()] = new[] { "kind" },
 
@@ -2253,6 +2357,7 @@ namespace Cesil.Tests
                     [typeof(FieldInfo).GetTypeInfo()] = new[] { "field" },
                     [typeof(ConstructorInfo).GetTypeInfo()] = new[] { "constructor" },
                     [typeof(ParameterInfo).GetTypeInfo()] = new[] { "parameter" },
+                    [typeof(BindingFlags).GetTypeInfo()] = new[] { "bindingFlags" },
 
                     // custom types
                     [typeof(Options).GetTypeInfo()] = new[] { "options" },
@@ -2262,7 +2367,8 @@ namespace Cesil.Tests
                     [typeof(SurrogateTypeDescriber).GetTypeInfo()] = new[] { "typeDescriber" },
                     [typeof(WriteContext).GetTypeInfo()] = new[] { "context" },
                     [typeof(ReadContext).GetTypeInfo()] = new[] { "context" },
-                    [typeof(RowEnding).GetTypeInfo()] = new[] { "rowEnding" },
+                    [typeof(ReadRowEnding).GetTypeInfo()] = new[] { "readRowEnding" },
+                    [typeof(WriteRowEnding).GetTypeInfo()] = new[] { "writeRowEnding" },
                     [typeof(ReadHeader).GetTypeInfo()] = new[] { "readHeader" },
                     [typeof(WriteHeader).GetTypeInfo()] = new[] { "writeHeader" },
                     [typeof(WriteTrailingRowEnding).GetTypeInfo()] = new[] { "writeTrailingNewLine" },
@@ -2289,6 +2395,7 @@ namespace Cesil.Tests
                     [typeof(IsRequiredAttribute).GetTypeInfo()] = new[] { "attribute" },
                     [typeof(ConstructorInstanceProviderAttribute).GetTypeInfo()] = new[] { "attribute" },
                     [typeof(SetterBackedByConstructorParameterAttribute).GetTypeInfo()] = new[] { "attribute" },
+                    [typeof(SetterBackedByInitOnlyPropertyAttribute).GetTypeInfo()] = new[] { "attribute" },
 #pragma warning restore CS0618
 
                     // wrapper types
@@ -2686,6 +2793,22 @@ namespace Cesil.Tests
 
             new ExcludeFromCoverageAttribute("shouldn't throw");
             Assert.Throws<ArgumentNullException>(() => new ExcludeFromCoverageAttribute(null));
+
+            var dma1 = new DeserializerMemberAttribute { Order = 4 };
+            Assert.True(dma1.HasOrder);
+            Assert.Equal(4, dma1.Order);
+
+            var dma2 = new DeserializerMemberAttribute();
+            Assert.False(dma2.HasOrder);
+            Assert.Throws<InvalidOperationException>(() => dma2.Order);
+
+            var sma1 = new SerializerMemberAttribute { Order = 6 };
+            Assert.True(sma1.HasOrder);
+            Assert.Equal(6, sma1.Order);
+
+            var sma2 = new SerializerMemberAttribute();
+            Assert.False(sma2.HasOrder);
+            Assert.Throws<InvalidOperationException>(() => sma2.Order);
         }
 
         [Fact]

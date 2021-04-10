@@ -255,7 +255,6 @@ namespace Cesil.Tests
             Func<BoundConfigurationBase<dynamic>,
             Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
             bool checkRunCounts = true,
-            bool releasePinsAcrossYields = true,
             bool cancellable = true
         )
         => RunAsyncReaderVariantsInnerAsync(
@@ -263,17 +262,20 @@ namespace Cesil.Tests
             opts,
             run,
             checkRunCounts,
-            releasePinsAcrossYields,
             cancellable
         );
 
-        internal static Task RunAsyncReaderVariants<T>(Options opts, Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run, bool checkRunCounts = true, bool releasePinsAcrossYields = true, bool cancellable = true)
+        internal static Task RunAsyncReaderVariants<T>(
+            Options opts, 
+            Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run, 
+            bool checkRunCounts = true, 
+            bool cancellable = true
+       )
         => RunAsyncReaderVariantsInnerAsync(
             opts => (BoundConfigurationBase<T>)Configuration.For<T>(opts),
             opts,
             run,
             checkRunCounts,
-            releasePinsAcrossYields,
             cancellable
         );
 
@@ -294,55 +296,11 @@ namespace Cesil.Tests
                 }
             };
 
-        private sealed class AsyncInstrumentedPinReaderAdapter : IAsyncReaderAdapter
-        {
-            private IAsyncReaderAdapter Inner;
-
-            public bool WaitingForUnpin { get; private set; }
-            public SemaphoreSlim Semaphore { get; }
-
-            public AsyncInstrumentedPinReaderAdapter(IAsyncReaderAdapter inner)
-            {
-                Inner = inner;
-                Semaphore = new SemaphoreSlim(0, 1);
-            }
-
-            public void UnpinObserved()
-            {
-                WaitingForUnpin = false;
-                Semaphore.Release();
-            }
-
-            public bool IsDisposed => Inner == null;
-
-            public async ValueTask DisposeAsync()
-            {
-                if (!IsDisposed)
-                {
-                    await Inner.DisposeAsync();
-                    Inner = null;
-                }
-            }
-
-            public async ValueTask<int> ReadAsync(Memory<char> into, CancellationToken cancellationToken)
-            {
-                WaitingForUnpin = true;
-                var gotIt = await Semaphore.WaitAsync(TimeSpan.FromSeconds(1));
-                if (!gotIt)
-                {
-                    throw new Exception("Did not observe unpin in time, probably held a pin over an await");
-                }
-
-                return await Inner.ReadAsync(into, cancellationToken);
-            }
-        }
-
         private static async Task RunAsyncReaderVariantsInnerAsync<T>(
             Func<Options, BoundConfigurationBase<T>> bindConfig,
             Options opts,
             Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run,
             bool checkRunCounts,
-            bool releasePinsAcrossYields,
             bool cancellable
         )
         {
@@ -354,12 +312,6 @@ namespace Cesil.Tests
                 // with a small buffer
                 var smallBufferOpts = Options.CreateBuilder(opts).WithReadBufferSizeHint(1).ToOptions();
                 await RunOnce(bindConfig, maker, smallBufferOpts, run, checkRunCounts);
-
-                // checking that we don't hold any pins across awaits
-                if (releasePinsAcrossYields)
-                {
-                    await RunCheckPins(bindConfig, maker, opts, run);
-                }
 
                 // in DEBUG we have some special stuff built in so we can go ham on different async paths
 #if DEBUG
@@ -509,73 +461,6 @@ namespace Cesil.Tests
                 }
             }
 #endif
-
-            static async Task RunCheckPins(
-                    Func<Options, BoundConfigurationBase<T>> bind,
-                    Func<string, ValueTask<IAsyncReaderAdapter>> readerMaker,
-                    Options baseOpts,
-                    Func<BoundConfigurationBase<T>, Func<string, ValueTask<IAsyncReaderAdapter>>, Task> run
-                )
-            {
-                AsyncInstrumentedPinReaderAdapter adapter = null;
-                AsyncInstrumentedPinConfig<T> config = null;
-                var running = true;
-
-                var monitoringThread =
-                    new Thread(
-                        () =>
-                        {
-                            while (running)
-                            {
-                                if (adapter == null || config == null)
-                                {
-                                    Thread.Sleep(0);
-                                    continue;
-                                }
-
-                                if (adapter.WaitingForUnpin)
-                                {
-                                    if (config.IsUnpinned)
-                                    {
-                                        adapter.UnpinObserved();
-                                        Thread.Sleep(0);
-                                    }
-                                }
-                            }
-                        }
-                    );
-                monitoringThread.Name = "RunCheckPins.Montor";
-                monitoringThread.Start();
-
-                // this will force us to await EVERY SINGLE TIME
-                //   and also make the await block until we explicitly
-                //   signal to continue
-                //
-                // before we signal, we'll confirm that the StateMachine has been
-                //   unpinned
-                config = new AsyncInstrumentedPinConfig<T>(bind(baseOpts));
-
-                try
-                {
-                    int runCount = 0;
-                    await run(
-                        config,
-                        async str =>
-                        {
-                            runCount++;
-                            var innerAdapter = await readerMaker(str);
-                            adapter = new AsyncInstrumentedPinReaderAdapter(innerAdapter);
-                            return adapter;
-                        }
-                    );
-                }
-                finally
-                {
-                    running = false;
-                }
-
-                monitoringThread.Join();
-            }
 
             static async Task RunOnce(
                 Func<Options, BoundConfigurationBase<T>> bind,

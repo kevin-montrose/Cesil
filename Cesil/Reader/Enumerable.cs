@@ -52,7 +52,7 @@ namespace Cesil
 
             if (Enumerated)
             {
-                return Throw.InvalidOperationException<IEnumerator<T>>("Cannot enumerate this enumerable multiple times");
+                Throw.InvalidOperationException("Cannot enumerate this enumerable multiple times");
             }
 
             Enumerated = true;
@@ -77,7 +77,7 @@ namespace Cesil
         {
             AssertNotDisposed(this);
 
-            Throw.NotSupportedException<object>(nameof(Enumerable<T>), nameof(Reset)); ;
+            Throw.NotSupportedException(nameof(Enumerable<T>), nameof(Reset)); ;
         }
 
         // not explicit for testing purposes
