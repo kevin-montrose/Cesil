@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Class GenerateSerializerAttribute
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -71,50 +71,29 @@ as needing a serializer generated at compile time.</p>
 <p>When using the AheadOfTimeTypeDescriber, the created I(Async)Writers
 for this type will do no runtime code generation.</p>
 <p>You can customize the behavior of the generated serialize with [DataMemberAttribute],
-and [GenerateSerializableMemberAttribute] attributes.</p>
+and [SerializerMemberAttribute] attributes.</p>
+<p>Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
   <div class="inheritance">
     <h5>Inheritance</h5>
     <div class="level0"><span class="xref">System.Object</span></div>
-    <div class="level1"><span class="xref">System.Attribute</span></div>
-    <div class="level2"><span class="xref">GenerateSerializerAttribute</span></div>
+    <div class="level1"><span class="xref">GenerateSerializerAttribute</span></div>
   </div>
   <div classs="implements">
     <h5>Implements</h5>
     <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.GenerateSerializerAttribute.html">GenerateSerializerAttribute</a>&gt;</div>
   </div>
-  <div class="inheritedMembers">
-    <h5>Inherited Members</h5>
-    <div>
-      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.GetType()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.MemberwiseClone()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
-    </div>
-  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_GenerateSerializerAttribute_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
-public sealed class GenerateSerializerAttribute : Attribute, IEquatable&lt;GenerateSerializerAttribute&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class GenerateSerializerAttribute : Attribute, IEquatable&lt;GenerateSerializerAttribute&gt;</code></pre>
   </div>
   <h3 id="constructors">Constructors
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute__ctor.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.%23ctor%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L21">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute__ctor_" data-uid="Cesil.GenerateSerializerAttribute.#ctor*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute__ctor" data-uid="Cesil.GenerateSerializerAttribute.#ctor">GenerateSerializerAttribute()</h4>
   <div class="markdown level1 summary"><p>Create a GenerateSerializerAttribute attribute.</p>
@@ -126,13 +105,8 @@ public sealed class GenerateSerializerAttribute : Attribute, IEquatable&lt;Gener
   </div>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_Equals_Cesil_GenerateSerializerAttribute_.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.Equals(Cesil.GenerateSerializerAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L27">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_Equals_" data-uid="Cesil.GenerateSerializerAttribute.Equals*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_Equals_Cesil_GenerateSerializerAttribute_" data-uid="Cesil.GenerateSerializerAttribute.Equals(Cesil.GenerateSerializerAttribute)">Equals(GenerateSerializerAttribute)</h4>
   <div class="markdown level1 summary"><p>Returns true if the given GenerateSerializerAttribute is equal
@@ -175,13 +149,8 @@ to this one.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L34">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_Equals_" data-uid="Cesil.GenerateSerializerAttribute.Equals*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_Equals_System_Object_" data-uid="Cesil.GenerateSerializerAttribute.Equals(System.Object)">Equals(Object)</h4>
   <div class="markdown level1 summary"><p>Return true if the given object is a GenerateSerializerAttribute
@@ -224,15 +193,8 @@ equal to this one.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Attribute.Equals(System.Object)</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L41">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_GetHashCode_" data-uid="Cesil.GenerateSerializerAttribute.GetHashCode*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_GetHashCode" data-uid="Cesil.GenerateSerializerAttribute.GetHashCode">GetHashCode()</h4>
   <div class="markdown level1 summary"><p>Returns a stable hash code for this GenerateSerializerAttribute.</p>
@@ -257,15 +219,8 @@ equal to this one.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Attribute.GetHashCode()</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_ToString.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L61">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_ToString_" data-uid="Cesil.GenerateSerializerAttribute.ToString*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_ToString" data-uid="Cesil.GenerateSerializerAttribute.ToString">ToString()</h4>
   <div class="markdown level1 summary"><p>Returns a representation of this GenerateSerializerAttribute object.</p>
@@ -291,17 +246,10 @@ equal to this one.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.ToString()</span></div>
   <h3 id="operators">Operators
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_op_Equality_Cesil_GenerateSerializerAttribute_Cesil_GenerateSerializerAttribute_.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.op_Equality(Cesil.GenerateSerializerAttribute%2CCesil.GenerateSerializerAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L47">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_op_Equality_" data-uid="Cesil.GenerateSerializerAttribute.op_Equality*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_op_Equality_Cesil_GenerateSerializerAttribute_Cesil_GenerateSerializerAttribute_" data-uid="Cesil.GenerateSerializerAttribute.op_Equality(Cesil.GenerateSerializerAttribute,Cesil.GenerateSerializerAttribute)">Equality(GenerateSerializerAttribute, GenerateSerializerAttribute)</h4>
   <div class="markdown level1 summary"><p>Compare two GenerateSerializerAttributes for equality</p>
@@ -348,13 +296,8 @@ equal to this one.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute_op_Inequality_Cesil_GenerateSerializerAttribute_Cesil_GenerateSerializerAttribute_.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute.op_Inequality(Cesil.GenerateSerializerAttribute%2CCesil.GenerateSerializerAttribute)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L53">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_GenerateSerializerAttribute_op_Inequality_" data-uid="Cesil.GenerateSerializerAttribute.op_Inequality*"></a>
   <h4 id="Cesil_GenerateSerializerAttribute_op_Inequality_Cesil_GenerateSerializerAttribute_Cesil_GenerateSerializerAttribute_" data-uid="Cesil.GenerateSerializerAttribute.op_Inequality(Cesil.GenerateSerializerAttribute,Cesil.GenerateSerializerAttribute)">Inequality(GenerateSerializerAttribute, GenerateSerializerAttribute)</h4>
   <div class="markdown level1 summary"><p>Compare two GenerateSerializerAttributes for inequality</p>
@@ -403,7 +346,7 @@ equal to this one.</p>
   </table>
   <h3 id="implements">Implements</h3>
   <div>
-      <span class="xref">System.IEquatable&lt;T&gt;</span>
+      <span class="xref">System.IEquatable&lt;&gt;</span>
   </div>
 </article>
           </div>
@@ -412,16 +355,11 @@ equal to this one.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_GenerateSerializerAttribute.md&amp;value=---%0Auid%3A%20Cesil.GenerateSerializerAttribute%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/Attributes/GenerateSerializerAttribute.cs/#L15" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

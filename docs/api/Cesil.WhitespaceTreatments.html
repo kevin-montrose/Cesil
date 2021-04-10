@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Enum WhitespaceTreatments
+    <title>Class WhitespaceTreatments
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Enum WhitespaceTreatments
+    <meta name="title" content="Class WhitespaceTreatments
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,85 +64,263 @@
             <article class="content wrap" id="_content" data-uid="Cesil.WhitespaceTreatments">
   
   
-  <h1 id="Cesil_WhitespaceTreatments" data-uid="Cesil.WhitespaceTreatments" class="text-break">Enum WhitespaceTreatments
+  <h1 id="Cesil_WhitespaceTreatments" data-uid="Cesil.WhitespaceTreatments" class="text-break">Class WhitespaceTreatments
   </h1>
   <div class="markdown level0 summary"><p>How to handle whitespace when encountered during parsing.</p>
 <p>Allows for automatic removal of leading or trailing whitespace in or outside of
 values or headers, depending on whether in an escaped sequence.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">WhitespaceTreatments</span></div>
+  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_WhitespaceTreatments_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">[Flags]
-public enum WhitespaceTreatments : byte</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class WhitespaceTreatments : Enum</code></pre>
   </div>
   <h3 id="fields">Fields
   </h3>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_Preserve" data-uid="Cesil.WhitespaceTreatments.Preserve">Preserve</h4>
+  <div class="markdown level1 summary"><p>Leave whitespace untouched, if in a value or header
+it will be preserved, if before or after an escaped
+value or header it will result in an error.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments Preserve</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
   <table class="table table-bordered table-striped table-condensed">
     <thead>
       <tr>
-        <th>Name</th>
+        <th>Type</th>
         <th>Description</th>
       </tr>
-    <thead>
+    </thead>
     <tbody>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_Preserve">Preserve</td>
-        <td><p>Leave whitespace untouched, if in a value or header
-it will be preserved, if before or after an escaped
-value or header it will result in an error.</p>
-</td>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
       </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_Trim" data-uid="Cesil.WhitespaceTreatments.Trim">Trim</h4>
+  <div class="markdown level1 summary"><p>Combines TrimInValues and TrimBetweenValues.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments Trim</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_Trim">Trim</td>
-        <td><p>Combines TrimInValues and TrimBetweenValues.</p>
-</td>
+        <th>Type</th>
+        <th>Description</th>
       </tr>
+    </thead>
+    <tbody>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimAfterValues">TrimAfterValues</td>
-        <td><p>Removes whitespace after a value or header.</p>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimAfterValues" data-uid="Cesil.WhitespaceTreatments.TrimAfterValues">TrimAfterValues</h4>
+  <div class="markdown level1 summary"><p>Removes whitespace after a value or header.</p>
 <p>For unescaped values this behaves the same as TrimTrailingInValues.</p>
 <p>For escaped values, only whitespace after the end of escaped value will be
 removed.</p>
-</td>
-      </tr>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimAfterValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimBeforeValues">TrimBeforeValues</td>
-        <td><p>Removes whitespace before a value or header.</p>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimBeforeValues" data-uid="Cesil.WhitespaceTreatments.TrimBeforeValues">TrimBeforeValues</h4>
+  <div class="markdown level1 summary"><p>Removes whitespace before a value or header.</p>
 <p>For unescaped values this behaves the same as TrimLeadingInValues.</p>
 <p>For escaped values, only whitespace before the start of escaped value will be
 removed.</p>
-</td>
-      </tr>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimBeforeValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimBetweenValues">TrimBetweenValues</td>
-        <td><p>Combines TrimBeforeValues and TrimAfterValues.</p>
-</td>
+        <th>Type</th>
+        <th>Description</th>
       </tr>
+    </thead>
+    <tbody>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimInValues">TrimInValues</td>
-        <td><p>Combines TrimLeadingInValues and TrimTrailingInValues.</p>
-</td>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
       </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimBetweenValues" data-uid="Cesil.WhitespaceTreatments.TrimBetweenValues">TrimBetweenValues</h4>
+  <div class="markdown level1 summary"><p>Combines TrimBeforeValues and TrimAfterValues.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimBetweenValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimLeadingInValues">TrimLeadingInValues</td>
-        <td><p>Removes whitespace that is at the start of a value or header.</p>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimInValues" data-uid="Cesil.WhitespaceTreatments.TrimInValues">TrimInValues</h4>
+  <div class="markdown level1 summary"><p>Combines TrimLeadingInValues and TrimTrailingInValues.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimInValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimLeadingInValues" data-uid="Cesil.WhitespaceTreatments.TrimLeadingInValues">TrimLeadingInValues</h4>
+  <div class="markdown level1 summary"><p>Removes whitespace that is at the start of a value or header.</p>
 <p>For unescaped values this behaves the same as TrimBeforeValues.</p>
 <p>For escaped values this removed leading whitespace.</p>
-</td>
-      </tr>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimLeadingInValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
       <tr>
-        <td id="Cesil_WhitespaceTreatments_TrimTrailingInValues">TrimTrailingInValues</td>
-        <td><p>Removes whitespace that follows a value or header.</p>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_TrimTrailingInValues" data-uid="Cesil.WhitespaceTreatments.TrimTrailingInValues">TrimTrailingInValues</h4>
+  <div class="markdown level1 summary"><p>Removes whitespace that follows a value or header.</p>
 <p>For unescaped values this behaves the same as TrimAfterValues.</p>
 <p>Leading whitespace in escaped values and headers will be
 removed.</p>
-</td>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const WhitespaceTreatments TrimTrailingInValues</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></td>
+        <td></td>
       </tr>
     </tbody>
-  </thead></thead></table>
+  </table>
+  
+  
+  <h4 id="Cesil_WhitespaceTreatments_value__" data-uid="Cesil.WhitespaceTreatments.value__">value__</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte value__</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
 </article>
           </div>
           
@@ -150,16 +328,11 @@ removed.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WhitespaceTreatments.md&amp;value=---%0Auid%3A%20Cesil.WhitespaceTreatments%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Configuration/WhitespaceTreatments.cs/#L11" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

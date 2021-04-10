@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Enum ReadHeader
+    <title>Class ReadHeader
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Enum ReadHeader
+    <meta name="title" content="Class ReadHeader
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,7 +64,7 @@
             <article class="content wrap" id="_content" data-uid="Cesil.ReadHeader">
   
   
-  <h1 id="Cesil_ReadHeader" data-uid="Cesil.ReadHeader" class="text-break">Enum ReadHeader
+  <h1 id="Cesil_ReadHeader" data-uid="Cesil.ReadHeader" class="text-break">Class ReadHeader
   </h1>
   <div class="markdown level0 summary"><p>Whether to expect a header row when
 deserializing.</p>
@@ -72,40 +72,119 @@ deserializing.</p>
 Detect.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">ReadHeader</span></div>
+  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_ReadHeader_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public enum ReadHeader : byte</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class ReadHeader : Enum</code></pre>
   </div>
   <h3 id="fields">Fields
   </h3>
+  
+  
+  <h4 id="Cesil_ReadHeader_Always" data-uid="Cesil.ReadHeader.Always">Always</h4>
+  <div class="markdown level1 summary"><p>Reading will fail if headers are <em>not</em> present.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadHeader Always</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
   <table class="table table-bordered table-striped table-condensed">
     <thead>
       <tr>
-        <th>Name</th>
+        <th>Type</th>
         <th>Description</th>
       </tr>
-    <thead>
+    </thead>
     <tbody>
       <tr>
-        <td id="Cesil_ReadHeader_Always">Always</td>
-        <td><p>Reading will fail if headers are <em>not</em> present.</p>
-</td>
-      </tr>
-      <tr>
-        <td id="Cesil_ReadHeader_Detect">Detect</td>
-        <td><p>Will probe for headers, but will continue if they
-are not present.</p>
-</td>
-      </tr>
-      <tr>
-        <td id="Cesil_ReadHeader_Never">Never</td>
-        <td><p>Reading will fail if headers are present.</p>
-</td>
+        <td><a class="xref" href="Cesil.ReadHeader.html">ReadHeader</a></td>
+        <td></td>
       </tr>
     </tbody>
-  </thead></thead></table>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadHeader_Detect" data-uid="Cesil.ReadHeader.Detect">Detect</h4>
+  <div class="markdown level1 summary"><p>Will probe for headers, but will continue if they
+are not present.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadHeader Detect</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadHeader.html">ReadHeader</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadHeader_Never" data-uid="Cesil.ReadHeader.Never">Never</h4>
+  <div class="markdown level1 summary"><p>Reading will fail if headers are present.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadHeader Never</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadHeader.html">ReadHeader</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadHeader_value__" data-uid="Cesil.ReadHeader.value__">value__</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte value__</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
 </article>
           </div>
           
@@ -113,16 +192,11 @@ are not present.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_ReadHeader.md&amp;value=---%0Auid%3A%20Cesil.ReadHeader%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Configuration/ReadHeader.cs/#L10" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Delegate InstanceProviderDelegate&lt;TInstance&gt;
+    <title>Class InstanceProviderDelegate&lt;TInstance&gt;
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Delegate InstanceProviderDelegate&lt;TInstance&gt;
+    <meta name="title" content="Class InstanceProviderDelegate&lt;TInstance&gt;
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,16 +64,191 @@
             <article class="content wrap" id="_content" data-uid="Cesil.InstanceProviderDelegate`1">
   
   
-  <h1 id="Cesil_InstanceProviderDelegate_1" data-uid="Cesil.InstanceProviderDelegate`1" class="text-break">Delegate InstanceProviderDelegate&lt;TInstance&gt;
+  <h1 id="Cesil_InstanceProviderDelegate_1" data-uid="Cesil.InstanceProviderDelegate`1" class="text-break">Class InstanceProviderDelegate&lt;TInstance&gt;
   </h1>
   <div class="markdown level0 summary"><p>Delegate used to create InstanceProviders.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">InstanceProviderDelegate&lt;TInstance&gt;</span></div>
+  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_InstanceProviderDelegate_1_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public delegate bool InstanceProviderDelegate&lt;TInstance&gt;(in ReadContext context, out TInstance instance);</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class InstanceProviderDelegate&lt;TInstance&gt; : MulticastDelegate</code></pre>
+  </div>
+  <h5 class="typeParameters">Type Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="parametername">TInstance</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="constructors">Constructors
+  </h3>
+  
+  
+  <a id="Cesil_InstanceProviderDelegate_1__ctor_" data-uid="Cesil.InstanceProviderDelegate`1.#ctor*"></a>
+  <h4 id="Cesil_InstanceProviderDelegate_1__ctor_System_Object_System_IntPtr_" data-uid="Cesil.InstanceProviderDelegate`1.#ctor(System.Object,System.IntPtr)">InstanceProviderDelegate(Object, IntPtr)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public InstanceProviderDelegate(object object, IntPtr method)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">object</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.IntPtr</span></td>
+        <td><span class="parametername">method</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h3 id="methods">Methods
+  </h3>
+  
+  
+  <a id="Cesil_InstanceProviderDelegate_1_BeginInvoke_" data-uid="Cesil.InstanceProviderDelegate`1.BeginInvoke*"></a>
+  <h4 id="Cesil_InstanceProviderDelegate_1_BeginInvoke_Cesil_ReadContext___0__System_AsyncCallback_System_Object_" data-uid="Cesil.InstanceProviderDelegate`1.BeginInvoke(Cesil.ReadContext@,`0@,System.AsyncCallback,System.Object)">BeginInvoke(ReadContext, out TInstance, AsyncCallback, Object)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual IAsyncResult BeginInvoke(in ReadContext context, out TInstance instance, AsyncCallback callback, object object)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TInstance</span></td>
+        <td><span class="parametername">instance</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.AsyncCallback</span></td>
+        <td><span class="parametername">callback</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">object</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.IAsyncResult</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="Cesil_InstanceProviderDelegate_1_EndInvoke_" data-uid="Cesil.InstanceProviderDelegate`1.EndInvoke*"></a>
+  <h4 id="Cesil_InstanceProviderDelegate_1_EndInvoke_Cesil_ReadContext___0__System_IAsyncResult_" data-uid="Cesil.InstanceProviderDelegate`1.EndInvoke(Cesil.ReadContext@,`0@,System.IAsyncResult)">EndInvoke(ReadContext, out TInstance, IAsyncResult)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual bool EndInvoke(in ReadContext context, out TInstance instance, IAsyncResult result)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">TInstance</span></td>
+        <td><span class="parametername">instance</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.IAsyncResult</span></td>
+        <td><span class="parametername">result</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Boolean</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="Cesil_InstanceProviderDelegate_1_Invoke_" data-uid="Cesil.InstanceProviderDelegate`1.Invoke*"></a>
+  <h4 id="Cesil_InstanceProviderDelegate_1_Invoke_Cesil_ReadContext___0__" data-uid="Cesil.InstanceProviderDelegate`1.Invoke(Cesil.ReadContext@,`0@)">Invoke(ReadContext, out TInstance)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public virtual bool Invoke(in ReadContext context, out TInstance instance)</code></pre>
   </div>
   <h5 class="parameters">Parameters</h5>
   <table class="table table-bordered table-striped table-condensed">
@@ -112,21 +287,6 @@
       </tr>
     </tbody>
   </table>
-  <h5 class="typeParameters">Type Parameters</h5>
-  <table class="table table-bordered table-striped table-condensed">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><span class="parametername">TInstance</span></td>
-        <td></td>
-      </tr>
-    </tbody>
-  </table>
 </article>
           </div>
           
@@ -134,16 +294,11 @@
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_InstanceProviderDelegate_1.md&amp;value=---%0Auid%3A%20Cesil.InstanceProviderDelegate%601%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/Wrappers/InstanceProvider.cs/#L11" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

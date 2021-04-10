@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Namespace Cesil
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -81,6 +81,15 @@ as using IReader(T), IAsyncReader(T), IWriter(T) and IAsyncWriter(T), but they i
 less code.</p>
 <p>Prefer them when the trade off for simplicity at the expense speed and flexibility makes sense.</p>
 </section>
+      <h4><a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a></h4>
+      <section><p>Identifies a particular column, either by index or
+index and name.</p>
+<p>A ColumnIdentifier is only valid for as long as the
+values used to construct it.  Accordingly, you should
+be careful when storing ColumnIdentifiers that you did
+not create yourself as they may have been created with
+ReadOnlyMemory(char)s whose lifetime you do not control.</p>
+</section>
       <h4><a class="xref" href="Cesil.Configuration.html">Configuration</a></h4>
       <section><p>Used to combine a type and an Options into an IBoundConfiguration(T),
 which can create readers and writers.</p>
@@ -99,8 +108,11 @@ methods.</p>
 <p>It will deserialize all public properties, any fields
 with a [DataMember], and will call Reset() methods.  Expects
 a public parameterless constructor for any deserialized types.</p>
-<p>It will convert cells to most built-in types, and map rows to
-POCOs, ValueTuples, Tuples, and IEnumerables.</p>
+<p>It will also deserialize records using their primary constructor.
+Names, Parsers, Resets, and Order may be customized with records but
+not Setters and MemberRequireds.</p>
+<p>It will convert dynamic cells to most built-in types, and map dynamoc
+rows to POCOs, ValueTuples, Tuples, and IEnumerables.</p>
 <p>This type is unsealed to allow for easy extension of it's behavior.</p>
 </section>
       <h4><a class="xref" href="Cesil.DeserializableMember.html">DeserializableMember</a></h4>
@@ -136,6 +148,10 @@ and the constructor itself must be annotated with DeserializerInstanceProviderAt
       <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
 <p>You should not use this directly.</p>
 </section>
+      <h4><a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a></h4>
+      <section><p>Wrapper around a dynamic cell which is to be written
+by an I(Async)Writer.</p>
+</section>
       <h4><a class="xref" href="Cesil.DynamicRowConverter.html">DynamicRowConverter</a></h4>
       <section><p>Describes how to convert a dynamic row value
 into an instance of a type.</p>
@@ -144,9 +160,28 @@ dynamic/object, constructors taking typed parameters, an
 empty constructor paired with setter methods,
 or static methods.</p>
 </section>
+      <h4><a class="xref" href="Cesil.DynamicRowConverterDelegate-1.html">DynamicRowConverterDelegate&lt;TOutput&gt;</a></h4>
+      <section><p>Delegate type for DynamicRowConverters.</p>
+</section>
+      <h4><a class="xref" href="Cesil.DynamicRowDisposal.html">DynamicRowDisposal</a></h4>
+      <section><p>When a dynamic row returned by a IReader or IAsyncReader
+will be disposed.</p>
+</section>
+      <h4><a class="xref" href="Cesil.EmitDefaultValue.html">EmitDefaultValue</a></h4>
+      <section><p>Whether or not the default value for a member will be serialized.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ExtraColumnTreatment.html">ExtraColumnTreatment</a></h4>
+      <section><p>How to handle extra columns when reading a row.</p>
+<p>A column is &quot;extra&quot; is if it's index is beyond
+those found in the header (or first row, if no header is
+present) of the CSV being read.</p>
+</section>
       <h4><a class="xref" href="Cesil.Formatter.html">Formatter</a></h4>
       <section><p>Represents code used to format a value into a IBufferWriter(char).</p>
 <p>Wraps either a static method or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.FormatterDelegate-1.html">FormatterDelegate&lt;TValue&gt;</a></h4>
+      <section><p>Delegate type for formatters.</p>
 </section>
       <h4><a class="xref" href="Cesil.GenerateDeserializerAttribute.html">GenerateDeserializerAttribute</a></h4>
       <section><p>When using Cesil's Source Generator (see Nuget.org for Cesil.SourceGenerator) marks a class or struct
@@ -157,10 +192,15 @@ To use a constructor other than the parameterless, use the [DeserializerInstance
 <p>When using the AheadOfTimeTypeDescriber, the created I(Async)Readers
 for this type will do no runtime code generation.</p>
 <p>You can customize the behavior of the generated deserializer with [DataMemberAttribute],
-and [GenerateDeserializableMemberAttribute] attributes.</p>
+and [DeserializaerMemberAttribute] attributes.</p>
+<p>Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.</p>
 </section>
       <h4><a class="xref" href="Cesil.GeneratedSourceVersionAttribute.html">GeneratedSourceVersionAttribute</a></h4>
       <section><p>Automatically attached to generated types to track compatibility.</p>
+<p>You should not use this directly.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.html">GeneratedSourceVersionAttribute.GeneratedTypeKind</a></h4>
+      <section><p>Used by GeneratedSourceVersionAttribute.</p>
 <p>You should not use this directly.</p>
 </section>
       <h4><a class="xref" href="Cesil.GenerateSerializerAttribute.html">GenerateSerializerAttribute</a></h4>
@@ -169,11 +209,15 @@ as needing a serializer generated at compile time.</p>
 <p>When using the AheadOfTimeTypeDescriber, the created I(Async)Writers
 for this type will do no runtime code generation.</p>
 <p>You can customize the behavior of the generated serialize with [DataMemberAttribute],
-and [GenerateSerializableMemberAttribute] attributes.</p>
+and [SerializerMemberAttribute] attributes.</p>
+<p>Default behavior (with no additional attributes) closely follows DefaultTypeDescriver.</p>
 </section>
       <h4><a class="xref" href="Cesil.Getter.html">Getter</a></h4>
       <section><p>Represents code used to get a value from a type.</p>
 <p>Wraps a static method, an instance method, a field, or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.GetterDelegate-2.html">GetterDelegate&lt;TRow, TValue&gt;</a></h4>
+      <section><p>Delegate type for getters.</p>
 </section>
       <h4><a class="xref" href="Cesil.ImpossibleException.html">ImpossibleException</a></h4>
       <section><p>An exception that should never happen.</p>
@@ -183,6 +227,9 @@ and [GenerateSerializableMemberAttribute] attributes.</p>
       <section><p>Represents a way to obtain an instance of a type.</p>
 <p>This can be backed by a zero-parameter constructor, a constructor
 taking typed parameters, a static method, or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.InstanceProviderDelegate-1.html">InstanceProviderDelegate&lt;TInstance&gt;</a></h4>
+      <section><p>Delegate used to create InstanceProviders.</p>
 </section>
       <h4><a class="xref" href="Cesil.IsRequiredAttribute.html">IsRequiredAttribute</a></h4>
       <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
@@ -196,6 +243,13 @@ when one of the EnumerateXXX() methods are called.</p>
       <section><p>Builder for creating a ManualTypeDescriber.</p>
 <p>Creates ITypeDescribers explicitly registered members to return
 when one of the EnumerateXXX() methods are called.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ManualTypeDescriberFallbackBehavior.html">ManualTypeDescriberFallbackBehavior</a></h4>
+      <section><p>How to behave if a ManualTypeDescriber needs to
+describe a type that isn't explicitly configured.</p>
+</section>
+      <h4><a class="xref" href="Cesil.MemberRequired.html">MemberRequired</a></h4>
+      <section><p>Whether or not a member is required during deserialization.</p>
 </section>
       <h4><a class="xref" href="Cesil.MemoryPoolProviders.html">MemoryPoolProviders</a></h4>
       <section><p>Holds references to pre-allocated IMemoryPoolProviders.</p>
@@ -217,10 +271,47 @@ is chainable and mutable.</p>
 ReadOnlySpan(char), a constuctor taking a ReadOnlySpan(char)
 and a ReadContext, or a delegate.</p>
 </section>
+      <h4><a class="xref" href="Cesil.ParserDelegate-1.html">ParserDelegate&lt;TOutput&gt;</a></h4>
+      <section><p>Delegate type for parsers.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></h4>
+      <section><p>Context object provided during read operations.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></h4>
+      <section><p>Indicates what a reader is doing when
+a ReadContext is created.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadHeader.html">ReadHeader</a></h4>
+      <section><p>Whether to expect a header row when
+deserializing.</p>
+<p>This can be determined automatically with
+Detect.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadResult-1.html">ReadResult&lt;TRow&gt;</a></h4>
+      <section><p>Represents the result of an attempted read operation.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadRowEnding.html">ReadRowEnding</a></h4>
+      <section><p>Which character sequence will end a row when reading rows.</p>
+<p>This can be determined automatically with Detect.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult&lt;TRow&gt;</a></h4>
+      <section><p>Represents the result of an attempted read operation which supports comments.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ReadWithCommentResultType.html">ReadWithCommentResultType</a></h4>
+      <section><p>Represents the type of a ReadWithCommentResult,
+either no value (end of records), having a value (of type T),
+or having a comment (always a string).</p>
+</section>
       <h4><a class="xref" href="Cesil.Reset.html">Reset</a></h4>
       <section><p>Represents code called before a setter is called or a field
 is set.</p>
 <p>Wraps a static method, an instance method, or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ResetByRefDelegate-1.html">ResetByRefDelegate&lt;TRow&gt;</a></h4>
+      <section><p>Delegate type for resets, where row is passed by ref.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ResetDelegate-1.html">ResetDelegate&lt;TRow&gt;</a></h4>
+      <section><p>Delegate type for resets.</p>
 </section>
       <h4><a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a></h4>
       <section><p>Represents a member of a type to use when serializing.</p>
@@ -265,9 +356,34 @@ parameter.</p>
       <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
 <p>You should not use this directly.</p>
 </section>
+      <h4><a class="xref" href="Cesil.SetterBackedByInitOnlyPropertyAttribute.html">SetterBackedByInitOnlyPropertyAttribute</a></h4>
+      <section><p>Automatically attached to generated methods depending on runtime behavior.</p>
+<p>You should not use this directly.</p>
+</section>
+      <h4><a class="xref" href="Cesil.SetterByRefDelegate-2.html">SetterByRefDelegate&lt;TRow, TValue&gt;</a></h4>
+      <section><p>Delegate type for setters, where instance is passed by ref.</p>
+</section>
+      <h4><a class="xref" href="Cesil.SetterDelegate-2.html">SetterDelegate&lt;TRow, TValue&gt;</a></h4>
+      <section><p>Delegate type for setters.</p>
+</section>
       <h4><a class="xref" href="Cesil.ShouldSerialize.html">ShouldSerialize</a></h4>
       <section><p>Represents code used to determine whether or not to write a value.</p>
 <p>Wraps a static method, an instance method, or a delegate.</p>
+</section>
+      <h4><a class="xref" href="Cesil.ShouldSerializeDelegate-1.html">ShouldSerializeDelegate&lt;TRow&gt;</a></h4>
+      <section><p>Delegate type for 'should serialize'.</p>
+</section>
+      <h4><a class="xref" href="Cesil.StaticGetterDelegate-1.html">StaticGetterDelegate&lt;TValue&gt;</a></h4>
+      <section><p>Delegate type for getters that doesn't take a row.</p>
+</section>
+      <h4><a class="xref" href="Cesil.StaticResetDelegate.html">StaticResetDelegate</a></h4>
+      <section><p>Delegate type for resets that don't take an instance of the row.</p>
+</section>
+      <h4><a class="xref" href="Cesil.StaticSetterDelegate-1.html">StaticSetterDelegate&lt;TValue&gt;</a></h4>
+      <section><p>Delegate type for setters that don't take an instance.</p>
+</section>
+      <h4><a class="xref" href="Cesil.StaticShouldSerializeDelegate.html">StaticShouldSerializeDelegate</a></h4>
+      <section><p>Delegate type for 'should serialize' that don't take a row.</p>
 </section>
       <h4><a class="xref" href="Cesil.SurrogateTypeDescriber.html">SurrogateTypeDescriber</a></h4>
       <section><p>A ITypeDesciber that enumerates members on a surrogate type and maps them to another type.</p>
@@ -281,35 +397,36 @@ and then the uncontrolled type is (de)serialized as if it were the surrogate typ
 <p>Used when you don't control the type you need to (de)serialize - you markup the surrogate type
 and then the uncontrolled type is (de)serialized as if it were the surrogate type.</p>
 </section>
+      <h4><a class="xref" href="Cesil.SurrogateTypeDescriberFallbackBehavior.html">SurrogateTypeDescriberFallbackBehavior</a></h4>
+      <section><p>How to behave if a SurrogateTypeDescriber needs to
+describe a type that isn't explicitly configured.</p>
+</section>
       <h4><a class="xref" href="Cesil.TypeDescribers.html">TypeDescribers</a></h4>
       <section><p>Holds references to pre-allocated TypeDescibers.</p>
 </section>
-    <h3 id="structs">Structs
-  </h3>
-      <h4><a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a></h4>
-      <section><p>Identifies a particular column, either by index or
-index and name.</p>
-<p>A ColumnIdentifier is only valid for as long as the
-values used to construct it.  Accordingly, you should
-be careful when storing ColumnIdentifiers that you did
-not create yourself as they may have been created with
-ReadOnlyMemory(char)s whose lifetime you do not control.</p>
-</section>
-      <h4><a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a></h4>
-      <section><p>Wrapper around a dynamic cell which is to be written
-by an I(Async)Writer.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></h4>
-      <section><p>Context object provided during read operations.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadResult-1.html">ReadResult&lt;TRow&gt;</a></h4>
-      <section><p>Represents the result of an attempted read operation.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadWithCommentResult-1.html">ReadWithCommentResult&lt;TRow&gt;</a></h4>
-      <section><p>Represents the result of an attempted read operation which supports comments.</p>
+      <h4><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></h4>
+      <section><p>How to handle whitespace when encountered during parsing.</p>
+<p>Allows for automatic removal of leading or trailing whitespace in or outside of
+values or headers, depending on whether in an escaped sequence.</p>
 </section>
       <h4><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></h4>
       <section><p>Context object provided during write operations.</p>
+</section>
+      <h4><a class="xref" href="Cesil.WriteContextMode.html">WriteContextMode</a></h4>
+      <section><p>Indicates what a writer is doing when
+a WriteContext is created.</p>
+</section>
+      <h4><a class="xref" href="Cesil.WriteHeader.html">WriteHeader</a></h4>
+      <section><p>Whether or not to write a header row when
+serializing.</p>
+</section>
+      <h4><a class="xref" href="Cesil.WriteRowEnding.html">WriteRowEnding</a></h4>
+      <section><p>Which character sequence will end a row when writing rows.</p>
+<p>Unlike with ReadRowEnding, this cannot be inferred.</p>
+</section>
+      <h4><a class="xref" href="Cesil.WriteTrailingRowEnding.html">WriteTrailingRowEnding</a></h4>
+      <section><p>Whether or not their should be a trailing row ending
+after the last row when serializing.</p>
 </section>
     <h3 id="interfaces">Interfaces
   </h3>
@@ -341,117 +458,6 @@ as needed during operation with no guarantee about the calling thread(s).</p>
       <h4><a class="xref" href="Cesil.IWriter-1.html">IWriter&lt;TRow&gt;</a></h4>
       <section><p>Interface for synchronously writing rows.</p>
 </section>
-    <h3 id="enums">Enums
-  </h3>
-      <h4><a class="xref" href="Cesil.DynamicRowDisposal.html">DynamicRowDisposal</a></h4>
-      <section><p>When a dynamic row returned by a IReader or IAsyncReader
-will be disposed.</p>
-</section>
-      <h4><a class="xref" href="Cesil.EmitDefaultValue.html">EmitDefaultValue</a></h4>
-      <section><p>Whether or not the default value for a member will be serialized.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ExtraColumnTreatment.html">ExtraColumnTreatment</a></h4>
-      <section><p>How to handle extra columns when reading a row.</p>
-<p>A column is &quot;extra&quot; is if it's index is beyond
-those found in the header (or first row, if no header is
-present) of the CSV being read.</p>
-</section>
-      <h4><a class="xref" href="Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.html">GeneratedSourceVersionAttribute.GeneratedTypeKind</a></h4>
-      <section><p>Used by GeneratedSourceVersionAttribute.</p>
-<p>You should not use this directly.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ManualTypeDescriberFallbackBehavior.html">ManualTypeDescriberFallbackBehavior</a></h4>
-      <section><p>How to behave if a ManualTypeDescriber needs to
-describe a type that isn't explicitly configured.</p>
-</section>
-      <h4><a class="xref" href="Cesil.MemberRequired.html">MemberRequired</a></h4>
-      <section><p>Whether or not a member is required during deserialization.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></h4>
-      <section><p>Indicates what a reader is doing when
-a ReadContext is created.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadHeader.html">ReadHeader</a></h4>
-      <section><p>Whether to expect a header row when
-deserializing.</p>
-<p>This can be determined automatically with
-Detect.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ReadWithCommentResultType.html">ReadWithCommentResultType</a></h4>
-      <section><p>Represents the type of a ReadWithCommentResult,
-either no value (end of records), having a value (of type T),
-or having a comment (always a string).</p>
-</section>
-      <h4><a class="xref" href="Cesil.RowEnding.html">RowEnding</a></h4>
-      <section><p>Which character sequence ends a row.</p>
-<p>This can be determined automatically with
-Detect.</p>
-</section>
-      <h4><a class="xref" href="Cesil.SurrogateTypeDescriberFallbackBehavior.html">SurrogateTypeDescriberFallbackBehavior</a></h4>
-      <section><p>How to behave if a SurrogateTypeDescriber needs to
-describe a type that isn't explicitly configured.</p>
-</section>
-      <h4><a class="xref" href="Cesil.WhitespaceTreatments.html">WhitespaceTreatments</a></h4>
-      <section><p>How to handle whitespace when encountered during parsing.</p>
-<p>Allows for automatic removal of leading or trailing whitespace in or outside of
-values or headers, depending on whether in an escaped sequence.</p>
-</section>
-      <h4><a class="xref" href="Cesil.WriteContextMode.html">WriteContextMode</a></h4>
-      <section><p>Indicates what a writer is doing when
-a WriteContext is created.</p>
-</section>
-      <h4><a class="xref" href="Cesil.WriteHeader.html">WriteHeader</a></h4>
-      <section><p>Whether or not to write a header row when
-serializing.</p>
-</section>
-      <h4><a class="xref" href="Cesil.WriteTrailingRowEnding.html">WriteTrailingRowEnding</a></h4>
-      <section><p>Whether or not their should be a trailing row ending
-after the last row when serializing.</p>
-</section>
-    <h3 id="delegates">Delegates
-  </h3>
-      <h4><a class="xref" href="Cesil.DynamicRowConverterDelegate-1.html">DynamicRowConverterDelegate&lt;TOutput&gt;</a></h4>
-      <section><p>Delegate type for DynamicRowConverters.</p>
-</section>
-      <h4><a class="xref" href="Cesil.FormatterDelegate-1.html">FormatterDelegate&lt;TValue&gt;</a></h4>
-      <section><p>Delegate type for formatters.</p>
-</section>
-      <h4><a class="xref" href="Cesil.GetterDelegate-2.html">GetterDelegate&lt;TRow, TValue&gt;</a></h4>
-      <section><p>Delegate type for getters.</p>
-</section>
-      <h4><a class="xref" href="Cesil.InstanceProviderDelegate-1.html">InstanceProviderDelegate&lt;TInstance&gt;</a></h4>
-      <section><p>Delegate used to create InstanceProviders.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ParserDelegate-1.html">ParserDelegate&lt;TOutput&gt;</a></h4>
-      <section><p>Delegate type for parsers.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ResetByRefDelegate-1.html">ResetByRefDelegate&lt;TRow&gt;</a></h4>
-      <section><p>Delegate type for resets, where row is passed by ref.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ResetDelegate-1.html">ResetDelegate&lt;TRow&gt;</a></h4>
-      <section><p>Delegate type for resets.</p>
-</section>
-      <h4><a class="xref" href="Cesil.SetterByRefDelegate-2.html">SetterByRefDelegate&lt;TRow, TValue&gt;</a></h4>
-      <section><p>Delegate type for setters, where instance is passed by ref.</p>
-</section>
-      <h4><a class="xref" href="Cesil.SetterDelegate-2.html">SetterDelegate&lt;TRow, TValue&gt;</a></h4>
-      <section><p>Delegate type for setters.</p>
-</section>
-      <h4><a class="xref" href="Cesil.ShouldSerializeDelegate-1.html">ShouldSerializeDelegate&lt;TRow&gt;</a></h4>
-      <section><p>Delegate type for 'should serialize'.</p>
-</section>
-      <h4><a class="xref" href="Cesil.StaticGetterDelegate-1.html">StaticGetterDelegate&lt;TValue&gt;</a></h4>
-      <section><p>Delegate type for getters that doesn't take a row.</p>
-</section>
-      <h4><a class="xref" href="Cesil.StaticResetDelegate.html">StaticResetDelegate</a></h4>
-      <section><p>Delegate type for resets that don't take an instance of the row.</p>
-</section>
-      <h4><a class="xref" href="Cesil.StaticSetterDelegate-1.html">StaticSetterDelegate&lt;TValue&gt;</a></h4>
-      <section><p>Delegate type for setters that don't take an instance.</p>
-</section>
-      <h4><a class="xref" href="Cesil.StaticShouldSerializeDelegate.html">StaticShouldSerializeDelegate</a></h4>
-      <section><p>Delegate type for 'should serialize' that don't take a row.</p>
-</section>
 </article>
           </div>
           
@@ -462,7 +468,8 @@ after the last row when serializing.</p>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

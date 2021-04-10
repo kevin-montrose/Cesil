@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Interface IAsyncWriter&lt;TRow&gt;
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -92,15 +92,10 @@
   </table>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1_WriteAllAsync_IAsyncEnumerable__0__CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601.WriteAllAsync(IAsyncEnumerable%7B%600%7D%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L22">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_IAsyncWriter_1_WriteAllAsync_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync*"></a>
-  <h4 id="Cesil_IAsyncWriter_1_WriteAllAsync_IAsyncEnumerable__0__CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync(IAsyncEnumerable{`0},CancellationToken)">WriteAllAsync(IAsyncEnumerable&lt;TRow&gt;, CancellationToken)</h4>
+  <h4 id="Cesil_IAsyncWriter_1_WriteAllAsync_System_Collections_Generic_IAsyncEnumerable__0__System_Threading_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync(System.Collections.Generic.IAsyncEnumerable{`0},System.Threading.CancellationToken)">WriteAllAsync(IAsyncEnumerable&lt;TRow&gt;, CancellationToken)</h4>
   <div class="markdown level1 summary"><p>Writes all rows enumerated by the given IAsyncEnumerable.</p>
 <p>Will complete synchronously if possible, but will not block
 if all rows are not immediately available or if the underlying
@@ -123,12 +118,12 @@ sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">IAsyncEnumerable</span>&lt;TRow&gt;</td>
+        <td><span class="xref">System.Collections.Generic.IAsyncEnumerable</span>&lt;TRow&gt;</td>
         <td><span class="parametername">rows</span></td>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="xref">System.Threading.CancellationToken</span></td>
         <td><span class="parametername">cancellationToken</span></td>
         <td></td>
       </tr>
@@ -144,20 +139,15 @@ sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ValueTask</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
+        <td><span class="xref">System.Threading.Tasks.ValueTask</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1_WriteAllAsync_System_Collections_Generic_IEnumerable__0__CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601.WriteAllAsync(System.Collections.Generic.IEnumerable%7B%600%7D%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L33">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_IAsyncWriter_1_WriteAllAsync_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync*"></a>
-  <h4 id="Cesil_IAsyncWriter_1_WriteAllAsync_System_Collections_Generic_IEnumerable__0__CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync(System.Collections.Generic.IEnumerable{`0},CancellationToken)">WriteAllAsync(IEnumerable&lt;TRow&gt;, CancellationToken)</h4>
+  <h4 id="Cesil_IAsyncWriter_1_WriteAllAsync_System_Collections_Generic_IEnumerable__0__System_Threading_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAllAsync(System.Collections.Generic.IEnumerable{`0},System.Threading.CancellationToken)">WriteAllAsync(IEnumerable&lt;TRow&gt;, CancellationToken)</h4>
   <div class="markdown level1 summary"><p>Writes all rows enumerated by the given IEnumerable.</p>
 <p>Will complete synchronously if possible, but will not block
 if the underlying sink does not complete immediately.</p>
@@ -184,7 +174,7 @@ if the underlying sink does not complete immediately.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="xref">System.Threading.CancellationToken</span></td>
         <td><span class="parametername">cancellationToken</span></td>
         <td></td>
       </tr>
@@ -200,20 +190,15 @@ if the underlying sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ValueTask</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
+        <td><span class="xref">System.Threading.Tasks.ValueTask</span>&lt;<span class="xref">System.Int32</span>&gt;</td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1_WriteAsync__0_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601.WriteAsync(%600%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L42">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_IAsyncWriter_1_WriteAsync_" data-uid="Cesil.IAsyncWriter`1.WriteAsync*"></a>
-  <h4 id="Cesil_IAsyncWriter_1_WriteAsync__0_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAsync(`0,CancellationToken)">WriteAsync(TRow, CancellationToken)</h4>
+  <h4 id="Cesil_IAsyncWriter_1_WriteAsync__0_System_Threading_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteAsync(`0,System.Threading.CancellationToken)">WriteAsync(TRow, CancellationToken)</h4>
   <div class="markdown level1 summary"><p>Write a single row.</p>
 <p>Will complete synchronously if possible, but will not block
 if the underlying sink does not complete immediately.</p>
@@ -239,7 +224,7 @@ if the underlying sink does not complete immediately.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="xref">System.Threading.CancellationToken</span></td>
         <td><span class="parametername">cancellationToken</span></td>
         <td></td>
       </tr>
@@ -255,20 +240,15 @@ if the underlying sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ValueTask</span></td>
+        <td><span class="xref">System.Threading.Tasks.ValueTask</span></td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1_WriteCommentAsync_ReadOnlyMemory_System_Char__CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601.WriteCommentAsync(ReadOnlyMemory%7BSystem.Char%7D%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L69">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_IAsyncWriter_1_WriteCommentAsync_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync*"></a>
-  <h4 id="Cesil_IAsyncWriter_1_WriteCommentAsync_ReadOnlyMemory_System_Char__CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync(ReadOnlyMemory{System.Char},CancellationToken)">WriteCommentAsync(ReadOnlyMemory&lt;Char&gt;, CancellationToken)</h4>
+  <h4 id="Cesil_IAsyncWriter_1_WriteCommentAsync_System_ReadOnlyMemory_System_Char__System_Threading_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync(System.ReadOnlyMemory{System.Char},System.Threading.CancellationToken)">WriteCommentAsync(ReadOnlyMemory&lt;Char&gt;, CancellationToken)</h4>
   <div class="markdown level1 summary"><p>Write a comment as a row.</p>
 <p>Only supported if this IWriter's configuration has a way to indicate comments.</p>
 <p>If the comment contains the row ending character sequence, it will be written as multiple
@@ -292,12 +272,12 @@ if the underlying sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ReadOnlyMemory</span>&lt;<span class="xref">System.Char</span>&gt;</td>
+        <td><span class="xref">System.ReadOnlyMemory</span>&lt;<span class="xref">System.Char</span>&gt;</td>
         <td><span class="parametername">comment</span></td>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="xref">System.Threading.CancellationToken</span></td>
         <td><span class="parametername">cancellationToken</span></td>
         <td></td>
       </tr>
@@ -313,20 +293,15 @@ if the underlying sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ValueTask</span></td>
+        <td><span class="xref">System.Threading.Tasks.ValueTask</span></td>
         <td></td>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1_WriteCommentAsync_System_String_CancellationToken_.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601.WriteCommentAsync(System.String%2CCancellationToken)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L56">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_IAsyncWriter_1_WriteCommentAsync_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync*"></a>
-  <h4 id="Cesil_IAsyncWriter_1_WriteCommentAsync_System_String_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync(System.String,CancellationToken)">WriteCommentAsync(String, CancellationToken)</h4>
+  <h4 id="Cesil_IAsyncWriter_1_WriteCommentAsync_System_String_System_Threading_CancellationToken_" data-uid="Cesil.IAsyncWriter`1.WriteCommentAsync(System.String,System.Threading.CancellationToken)">WriteCommentAsync(String, CancellationToken)</h4>
   <div class="markdown level1 summary"><p>Write a comment as a row.</p>
 <p>Only supported if this IWriter's configuration has a way to indicate comments.</p>
 <p>If the comment contains the row ending character sequence, it will be written as multiple
@@ -355,7 +330,7 @@ if the underlying sink does not complete immediately.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">CancellationToken</span></td>
+        <td><span class="xref">System.Threading.CancellationToken</span></td>
         <td><span class="parametername">cancellationToken</span></td>
         <td></td>
       </tr>
@@ -371,7 +346,7 @@ if the underlying sink does not complete immediately.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">ValueTask</span></td>
+        <td><span class="xref">System.Threading.Tasks.ValueTask</span></td>
         <td></td>
       </tr>
     </tbody>
@@ -383,16 +358,11 @@ if the underlying sink does not complete immediately.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_IAsyncWriter_1.md&amp;value=---%0Auid%3A%20Cesil.IAsyncWriter%601%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Interface/IAsyncWriter.cs/#L11" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

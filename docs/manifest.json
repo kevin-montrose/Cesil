@@ -9,7 +9,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.AheadOfTimeTypeDescriber.html",
-          "hash": "TpTDZxTFV15RDqzxUz/fpA=="
+          "hash": "ldEB86ksZr59ObhrcrvcFrHN+ggd15peXxqt8WMAkZY="
         }
       },
       "is_incremental": false,
@@ -21,7 +21,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.CesilUtils.html",
-          "hash": "7b/mRErsaKAEV7DcMO9VCw=="
+          "hash": "HD68EENKGm5gxj4ChXzt/Cr/N9heMS0kmrMxr/HdS5I="
         }
       },
       "is_incremental": false,
@@ -33,7 +33,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ColumnIdentifier.html",
-          "hash": "xEsDtiFEnvm/0FPh9qbQGQ=="
+          "hash": "G7LXkcloUf0YGTmekOm4a+JGdlQ3+oC0/SiaZGfWxoY="
         }
       },
       "is_incremental": false,
@@ -45,7 +45,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Configuration.html",
-          "hash": "dRMZPqpUiw95uCYrWnOe0w=="
+          "hash": "XtzSh0pmEApkxJ64LirXnxDZDnxoQhgTzrb4AE/Lu7A="
         }
       },
       "is_incremental": false,
@@ -57,7 +57,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ConstructorInstanceProviderAttribute.html",
-          "hash": "pBrF8da98WsjJaKdpk9Slg=="
+          "hash": "IgfyRpfVy8u71QBzYwfHfAsSwCpopipKyBicA0T8gE4="
         }
       },
       "is_incremental": false,
@@ -69,7 +69,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DefaultTypeDescriber.html",
-          "hash": "6p5eMB+IESmwNKfoGuuNgQ=="
+          "hash": "lksoOmnsYQxuYbjq6PeqIJwxZS7bpWc03ThnhzPiAiw="
         }
       },
       "is_incremental": false,
@@ -81,7 +81,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DeserializableMember.html",
-          "hash": "wKQXdwIqq9XN5kSn0UHJTw=="
+          "hash": "pZ0lW/34GFZAv2kUkUSK0bcFQONRzR409SRjPDPLx+M="
         }
       },
       "is_incremental": false,
@@ -93,7 +93,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DeserializerInstanceProviderAttribute.html",
-          "hash": "T4XmpSaAa37P91yvRjUncg=="
+          "hash": "NF0bVov+NjaaOZS/hJhYsq/0h5NLxBwxB1BSURpcUtM="
         }
       },
       "is_incremental": false,
@@ -105,7 +105,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DeserializerMemberAttribute.html",
-          "hash": "ZZcUzdO5WYnmENvplEhRKw=="
+          "hash": "pq35nLdxqGwSCiw6xnD0zudb/riozByP4E3SG/rFP8k="
         }
       },
       "is_incremental": false,
@@ -117,7 +117,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DoesNotEmitDefaultValueAttribute.html",
-          "hash": "C9CpXjTJ+OftpHmpjnDe8w=="
+          "hash": "oN8eFxOzNUyWDByK33QQern0Wz0pU/qN1CTzNP7nFwo="
         }
       },
       "is_incremental": false,
@@ -129,7 +129,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DynamicCellValue.html",
-          "hash": "eB5qNNi8bFME5rAxpmSKdA=="
+          "hash": "0N7rE1te3UPQc4jMtwycfEG56Z0C5VUK+/thz8SrXwc="
         }
       },
       "is_incremental": false,
@@ -141,7 +141,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DynamicRowConverter.html",
-          "hash": "2eJSKOfvDXHA61uqeqZ3+Q=="
+          "hash": "lInSqxYWEhiNaB/TpqrFZ3RJjOmeFn0GTgwZWeMYuAM="
         }
       },
       "is_incremental": false,
@@ -153,7 +153,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DynamicRowConverterDelegate-1.html",
-          "hash": "pLS/2FAL6fQeDDwVses+Cg=="
+          "hash": "6S0ZrXx2jKJLaxvPJR3cdcDUkXBC/kyHPvmlKcQ+gNY="
         }
       },
       "is_incremental": false,
@@ -165,7 +165,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.DynamicRowDisposal.html",
-          "hash": "JDFBelSBpf1q3n3b59Wz7g=="
+          "hash": "1RsJZF+fLPjr3gFxPJyKIZw0s7/d463B0k6x07kc48k="
         }
       },
       "is_incremental": false,
@@ -177,7 +177,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.EmitDefaultValue.html",
-          "hash": "7wziPw+H05kAB9CmKfgBRQ=="
+          "hash": "sFMzl4qGdIQuhme6xfza8K+CzqnpHZ6WZkSrBpNAaX4="
         }
       },
       "is_incremental": false,
@@ -189,7 +189,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ExtraColumnTreatment.html",
-          "hash": "cCC0oU0V4o6cMoaKPO8Dfg=="
+          "hash": "iZZDWPvwMmtRr4XTHg6naO50cGaKFumTyq+ZOfM0sPs="
         }
       },
       "is_incremental": false,
@@ -201,7 +201,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Formatter.html",
-          "hash": "wdbPT/MEwejNhNQ1KpMZ8g=="
+          "hash": "8BCWtOJQquepzJ08/6I8/Y3VRNN/Rt0+unwBe93TqrY="
         }
       },
       "is_incremental": false,
@@ -213,7 +213,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.FormatterDelegate-1.html",
-          "hash": "79IpznA3xBba/dKmthj1rw=="
+          "hash": "X0BLycVLa6auMAfHoms4w3NGkFB+F0nPLOYFiUYoIT4="
         }
       },
       "is_incremental": false,
@@ -225,7 +225,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.GenerateDeserializerAttribute.html",
-          "hash": "0xjCxzYIq1+0kwLkEDjIGQ=="
+          "hash": "Dtt5lWaC1A1qXqvLAyK0HFUwjdnXu1raUYIOKh6hovg="
         }
       },
       "is_incremental": false,
@@ -237,7 +237,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.GenerateSerializerAttribute.html",
-          "hash": "o9fq56qk3dvh9do8E9RQiw=="
+          "hash": "6UoeEjIAPnXRA1fpssiz17cECUicIUVxrarVOOL17os="
         }
       },
       "is_incremental": false,
@@ -249,7 +249,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.GeneratedSourceVersionAttribute.GeneratedTypeKind.html",
-          "hash": "oH1MmT0GGcb4YMU/QKztcQ=="
+          "hash": "yct4I2WpKQwcZF8/zwmQdo1s/lOEYtKX3IFRk1qV0m4="
         }
       },
       "is_incremental": false,
@@ -261,7 +261,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.GeneratedSourceVersionAttribute.html",
-          "hash": "kAi/81eAlofk3IPQ4Lb/XQ=="
+          "hash": "PtlDsWGR2g5I6DuQyHwgFUKeL80WBUSEsDh0du+yOZ4="
         }
       },
       "is_incremental": false,
@@ -273,7 +273,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Getter.html",
-          "hash": "KGVyK8yw3hd/CujclrlrUg=="
+          "hash": "hTatuqnZGa5iWv0yRINuwTo5AtVHDTi4Sq/xYZzskd8="
         }
       },
       "is_incremental": false,
@@ -285,7 +285,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.GetterDelegate-2.html",
-          "hash": "aPoLxAIOWbchhQBWx4VMog=="
+          "hash": "xgFtPlR8RBoJPZ/lYmXYNw3FY3wPDQDAwjYO988yNjI="
         }
       },
       "is_incremental": false,
@@ -297,7 +297,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IAsyncReader-1.html",
-          "hash": "dcsiwJOol4lLSX2AzrNloQ=="
+          "hash": "y0fzAAOHNChY3RMr9uWYlJ6Mosq2XMa2r1FfxkxvqAw="
         }
       },
       "is_incremental": false,
@@ -309,7 +309,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IAsyncWriter-1.html",
-          "hash": "7Bbe30O3d7Rz+dAeRtNDQQ=="
+          "hash": "Ez/Duj3CvE6O0pBDe7Bn25sV0BoSOexdSB6q+B0ZlA4="
         }
       },
       "is_incremental": false,
@@ -321,7 +321,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IBoundConfiguration-1.html",
-          "hash": "Xxim3K9mvJ7JywS7894ViA=="
+          "hash": "uZ8Rl7+vgornYik41t2+rWs89HQhueR8vkr9sIzsRj8="
         }
       },
       "is_incremental": false,
@@ -333,7 +333,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IMemoryPoolProvider.html",
-          "hash": "VQdvegCo4otCilD8sX726A=="
+          "hash": "PKJa13DfqkJeZY2T1MG87i1r4JomoQTiqOIgJvgSpDI="
         }
       },
       "is_incremental": false,
@@ -345,7 +345,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IReader-1.html",
-          "hash": "45urnQyAUD944OuwqYthuQ=="
+          "hash": "gTSjDFYwgbWb7Hk70Lj/nC7JjY3RIeKbARVSiRiOF9Y="
         }
       },
       "is_incremental": false,
@@ -357,7 +357,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ITypeDescriber.html",
-          "hash": "8twbUVdKCpMC40YbVDnnlw=="
+          "hash": "UhDQec92OU4+C9SXoU3Q2JlpQmZheogugJNpTHhlxlI="
         }
       },
       "is_incremental": false,
@@ -369,7 +369,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IWriter-1.html",
-          "hash": "Tb/IwpRM5ZE4L++w9N85tw=="
+          "hash": "Amsr1CtGRxHosqysLuPX18KIpnvy0NA+bX75xx+az90="
         }
       },
       "is_incremental": false,
@@ -381,7 +381,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ImpossibleException.html",
-          "hash": "/0tyzJFOWdlaiAc7ZtcXbw=="
+          "hash": "ZHUmN/hRIXjR86uJhLoghc1KQ6YN7QZ+jk06tZ04Eoo="
         }
       },
       "is_incremental": false,
@@ -393,7 +393,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.InstanceProvider.html",
-          "hash": "F6wWcqmGF77mInWJ4qDnUw=="
+          "hash": "cBLtJizsoFhKg21RmJu4aS9r8uRUuLjJJjYDV4J+8PM="
         }
       },
       "is_incremental": false,
@@ -405,7 +405,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.InstanceProviderDelegate-1.html",
-          "hash": "9jqMcrQNBA7WZcU56hQWQw=="
+          "hash": "76MMZEb0qsfvF6n1G2dYq2jx81wVv8T7vua/fgyaHb4="
         }
       },
       "is_incremental": false,
@@ -417,7 +417,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.IsRequiredAttribute.html",
-          "hash": "zcuTkHxZnzf1zhmji3iIjQ=="
+          "hash": "VfkIjnDF1BUmG8UySJvZZWeIHXr8Ky99zqZlu1Z69LU="
         }
       },
       "is_incremental": false,
@@ -429,7 +429,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ManualTypeDescriber.html",
-          "hash": "yzpRgGxooqFLG7t4DJIDfg=="
+          "hash": "9fPI0EmRUB4KVSy1OxafJwjEbMG0siXv74/X0rWPwdA="
         }
       },
       "is_incremental": false,
@@ -441,7 +441,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ManualTypeDescriberBuilder.html",
-          "hash": "ewpPhMTn2nuHy/o4m/TYrA=="
+          "hash": "R6lcye4Xc5XFMeomzXuF1dMSslVaaQ8CTvdhAFNH+OI="
         }
       },
       "is_incremental": false,
@@ -453,7 +453,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ManualTypeDescriberFallbackBehavior.html",
-          "hash": "LH+H7BAtn2P74WyQmhNRhQ=="
+          "hash": "ddHqKZ+G2t9wlERAIjWVmk9pE/idd8ACQisWyJjjJ7M="
         }
       },
       "is_incremental": false,
@@ -465,7 +465,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.MemberRequired.html",
-          "hash": "t1OgUd2b6ZICzqw3U2oG0Q=="
+          "hash": "QiZ9l7GZvxG/p3PWSF1IOh+THjRPYOcJur85HUK2JGU="
         }
       },
       "is_incremental": false,
@@ -477,7 +477,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.MemoryPoolProviders.html",
-          "hash": "COb9ZmHptLWS3bPzcBMtHw=="
+          "hash": "uJRNuq5qoIY89orWQTZbFIR73OZ07AdK/9LHDmjk+SE="
         }
       },
       "is_incremental": false,
@@ -489,7 +489,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Options.html",
-          "hash": "0hq5qYwXTRaJetZOlNL6cw=="
+          "hash": "bArG7lFVTjq/9aLZpopBSDT4NBbj7EHbl7bIKLvAE64="
         }
       },
       "is_incremental": false,
@@ -501,7 +501,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.OptionsBuilder.html",
-          "hash": "j9w9azGa8okuPvuo061wog=="
+          "hash": "XmI79LTZEJbzd9ehm98Z1CcJ2VkMQc3hacMrruK3L98="
         }
       },
       "is_incremental": false,
@@ -513,7 +513,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Parser.html",
-          "hash": "4bCDMZ7Yr1/GDQYYe1kXxQ=="
+          "hash": "YJBWHhhtins4kCGyDF/6gS/15/QQdybLpmoi7s2mIHo="
         }
       },
       "is_incremental": false,
@@ -525,7 +525,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ParserDelegate-1.html",
-          "hash": "aNyzVDuvMU7fek42kRw1yw=="
+          "hash": "XZwe1dVDWxhWv46QaDp6OpiRfHru8/l7KvqBpcNIeys="
         }
       },
       "is_incremental": false,
@@ -537,7 +537,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadContext.html",
-          "hash": "X4QBE0w8OVCeZrQwdVyXEg=="
+          "hash": "U0DuyP3aR5os3GtaRx03iFBxDKbfy6OnSQ+I2p3QOro="
         }
       },
       "is_incremental": false,
@@ -549,7 +549,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadContextMode.html",
-          "hash": "bcpEuxGErWuywWA6/ufSvA=="
+          "hash": "X0oCJVZOSw3Xl5cxjwFFhWm6v26hJxsRsoccPC75K+k="
         }
       },
       "is_incremental": false,
@@ -561,7 +561,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadHeader.html",
-          "hash": "a6Wt+2diiJ6jWXDgGjInQQ=="
+          "hash": "esJ5zBFMx5EdTso4JkpbkC89TN0fAB+ugPGXvKmGrlQ="
         }
       },
       "is_incremental": false,
@@ -573,7 +573,19 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadResult-1.html",
-          "hash": "2LAWv835pDKUPng+XaQQKw=="
+          "hash": "6UqKC2Cn3JnY3yo9k4VzMqcYyIDqY/s7T1S2v+Kvnm8="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Cesil.ReadRowEnding.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Cesil.ReadRowEnding.html",
+          "hash": "jhWNeLIB9H+Cv24vBpKtLAp4c3TW1brXCAmXO049ODI="
         }
       },
       "is_incremental": false,
@@ -585,7 +597,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadWithCommentResult-1.html",
-          "hash": "yZ8JN9KkupiL1IrQqWHQ7A=="
+          "hash": "yMsSTzufc4FR53+sZ/XnZrTrXl7EvU/oVsQjYV3UHQ4="
         }
       },
       "is_incremental": false,
@@ -597,7 +609,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ReadWithCommentResultType.html",
-          "hash": "RGP3IhWQUiLOVq02unDYPA=="
+          "hash": "02fNUmLMUsRe7oZxQwbO4IVaDqV79iSbolEAX6HL0Sc="
         }
       },
       "is_incremental": false,
@@ -609,7 +621,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Reset.html",
-          "hash": "oPcNiFQI77YPPc+LZyWBxA=="
+          "hash": "6xz+f1eOk4EJNnCwyvdXCIP1TfpNNY8XKApP5AF1ih0="
         }
       },
       "is_incremental": false,
@@ -621,7 +633,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ResetByRefDelegate-1.html",
-          "hash": "ocacptBgKbEaj3D3NncGvA=="
+          "hash": "RnXuLmoBlcecYbYw0lRWjN1e0O27sOr3l6K8e4um6IU="
         }
       },
       "is_incremental": false,
@@ -633,19 +645,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ResetDelegate-1.html",
-          "hash": "5G1daIzEwI8rU70OaXe/gw=="
-        }
-      },
-      "is_incremental": false,
-      "version": ""
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/Cesil.RowEnding.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/Cesil.RowEnding.html",
-          "hash": "Muj6olE3GVtJp6VvHzbMVA=="
+          "hash": "vOv5fP6pEqyW1oloG/7jxrAIYYX3RXp67pbXpoS2quc="
         }
       },
       "is_incremental": false,
@@ -657,7 +657,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SerializableMember.html",
-          "hash": "jx5FFWZZNQnhUskqHxknUA=="
+          "hash": "D5YXGAybRh7rVFV0p9MJ9GNRebkzh0vQty6XBaf3eIU="
         }
       },
       "is_incremental": false,
@@ -669,7 +669,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SerializerMemberAttribute.html",
-          "hash": "WN5yWH07uCl96dIqwfycTw=="
+          "hash": "v0yE+FIaxm0SgzjGrx5nVVEoISn+dCAep/GbhwIFKVY="
         }
       },
       "is_incremental": false,
@@ -681,7 +681,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.Setter.html",
-          "hash": "+fi7b+0Esaj3sNtTdhM2Lg=="
+          "hash": "5Oyh5i6/9rQLFMQZmusbycYMp5NmuOxHdXw91J6dCpI="
         }
       },
       "is_incremental": false,
@@ -693,7 +693,19 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SetterBackedByConstructorParameterAttribute.html",
-          "hash": "h/llotzpvzYD6G66/lgW3w=="
+          "hash": "pQgzx2vD5QzDuzvM8P+IXCaqCzjb+kxe29x+hf40VMc="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Cesil.SetterBackedByInitOnlyPropertyAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Cesil.SetterBackedByInitOnlyPropertyAttribute.html",
+          "hash": "xImWCFYaos7HlGKlJdmtXxOZ9yvR+c4xgvfuKvFdnrc="
         }
       },
       "is_incremental": false,
@@ -705,7 +717,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SetterByRefDelegate-2.html",
-          "hash": "0OtGqackR+YIS1k6XgEokg=="
+          "hash": "P1voC/H0BjPfBppOkCV484+M48RO6aJXG+wfLQbOkOM="
         }
       },
       "is_incremental": false,
@@ -717,7 +729,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SetterDelegate-2.html",
-          "hash": "G9URKfadt06vW1w8glyY8A=="
+          "hash": "sJ/0db9nHyKDxDCAYWB852XniJ3m4rXpz4Xef/IDk38="
         }
       },
       "is_incremental": false,
@@ -729,7 +741,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ShouldSerialize.html",
-          "hash": "aBqkssTgn2+HsQKwz2aHzg=="
+          "hash": "OCzYgHSjycW4bXs1TyqjmWZVpR5/Sab0i5QaP/tBG2E="
         }
       },
       "is_incremental": false,
@@ -741,7 +753,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.ShouldSerializeDelegate-1.html",
-          "hash": "q14Zts84tP/5oDRCWyHq1A=="
+          "hash": "kXlzQMdl6WeBo+1jCVPsZgZQ7FJ9C1TV4D1Z3RLuKyM="
         }
       },
       "is_incremental": false,
@@ -753,7 +765,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.StaticGetterDelegate-1.html",
-          "hash": "jakqebH3xGDFE5JA0o3sfg=="
+          "hash": "xaGaX34Su62fYkK9ykGCoVO52+BXcAIJXl5OjSmC7xc="
         }
       },
       "is_incremental": false,
@@ -765,7 +777,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.StaticResetDelegate.html",
-          "hash": "tLqM4XsUdigbLhvKUFxAtg=="
+          "hash": "mZu8Dhb2C+Q/OtYF8yj+C1uLgvoNBvdKriw49SRsktw="
         }
       },
       "is_incremental": false,
@@ -777,7 +789,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.StaticSetterDelegate-1.html",
-          "hash": "sg1pVQPWqF5ZtOw1y8hzJQ=="
+          "hash": "Z0DOJIXwtFyPywor/tS5IHxaLn0qpv+ZpIdPml6G538="
         }
       },
       "is_incremental": false,
@@ -789,7 +801,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.StaticShouldSerializeDelegate.html",
-          "hash": "vb9+rcuzzszri7A3yB94XA=="
+          "hash": "Yz+IfnTrNH/Gv40hClDwPV15v+GUBuUXe6DHXoe4M/I="
         }
       },
       "is_incremental": false,
@@ -801,7 +813,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SurrogateTypeDescriber.html",
-          "hash": "6+FGxoTN+0nPJKeja9/ZjQ=="
+          "hash": "/FroCTeX1l1PFaDWsIU3pRaYTekU4y20/lOrjq+ebg4="
         }
       },
       "is_incremental": false,
@@ -813,7 +825,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SurrogateTypeDescriberBuilder.html",
-          "hash": "Ns+A+3CM0VOdNk6w9eGaOg=="
+          "hash": "0dvXvN2L1C5pRe9jTEymrsD1mN51o1oaSH2CXiJRuLw="
         }
       },
       "is_incremental": false,
@@ -825,7 +837,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.SurrogateTypeDescriberFallbackBehavior.html",
-          "hash": "Q1wpmwZnZ22kTLTqanOFLA=="
+          "hash": "6KezvWwZPeO8e6SoqqeiMEiIRwImM+NSUoPlzkQd3UM="
         }
       },
       "is_incremental": false,
@@ -837,7 +849,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.TypeDescribers.html",
-          "hash": "3xSbBnesmmsX8W0fdGNz2w=="
+          "hash": "MttTg9Vc78EvXqMk2CPGvZgDIWrOg98Bq7diwFtU688="
         }
       },
       "is_incremental": false,
@@ -849,7 +861,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.WhitespaceTreatments.html",
-          "hash": "gmNIP39f4fbQYyR699uTag=="
+          "hash": "fQulJRYQCMdLHpgi3guC2h+ZrPI6kHJJt3r0j1YzYEM="
         }
       },
       "is_incremental": false,
@@ -861,7 +873,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.WriteContext.html",
-          "hash": "hDVA8ssBWvYLtoG3ovVtvg=="
+          "hash": "hd5/3nCikhSbWvPwKyPbqOaPCxJdibz4UrEeALc8Bt4="
         }
       },
       "is_incremental": false,
@@ -873,7 +885,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.WriteContextMode.html",
-          "hash": "Y2VS/Pdzu3uykdLuyfso1g=="
+          "hash": "51iclbLJsLg0abCdgfbuVre7h+1B/SCPdCo7KJ/Jv3s="
         }
       },
       "is_incremental": false,
@@ -885,7 +897,19 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.WriteHeader.html",
-          "hash": "xM7uaqjz2PbX3kH0jjNJlA=="
+          "hash": "/miom2GFWrGo3NNtmu25NRS+LhJJy5nc+7yuvyaybyU="
+        }
+      },
+      "is_incremental": false,
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/Cesil.WriteRowEnding.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/Cesil.WriteRowEnding.html",
+          "hash": "TUQDaJtUjk6mqrQiytp6i08tGyeZl7zaQlGPf/+ZNUs="
         }
       },
       "is_incremental": false,
@@ -897,7 +921,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.WriteTrailingRowEnding.html",
-          "hash": "at+BAiDbzbJGWrqjkX7phQ=="
+          "hash": "Xqu7I1OHquhkOTf5QbkqJDXezYEPJlbF5HM7HRapP10="
         }
       },
       "is_incremental": false,
@@ -909,7 +933,7 @@
       "output": {
         ".html": {
           "relative_path": "api/Cesil.html",
-          "hash": "DjxTCYeEuLWwj8A8uv716w=="
+          "hash": "1WQeYb8WmrPmKWeSsCOpseYkPNoZAS0glyvUcELD3bQ="
         }
       },
       "is_incremental": false,
@@ -921,7 +945,7 @@
       "output": {
         ".html": {
           "relative_path": "api/toc.html",
-          "hash": "OimagQ6TEYl2Mj4wJk2RsA=="
+          "hash": "ynmliP5tDQ9V+47yGrEfNbKTKngXYzya9AZpuWhwHQ4="
         }
       },
       "is_incremental": false,
@@ -932,17 +956,17 @@
     {
       "status": {
         "can_incremental": false,
-        "details": "Cannot build incrementally because last build info is missing.",
+        "details": "Cannot build incrementally because docfx version changed from 2.52.0.0 to 2.57.0.0.",
         "incrementalPhase": "build",
         "total_file_count": 0,
         "skipped_file_count": 0,
-        "full_build_reason_code": "NoAvailableBuildCache"
+        "full_build_reason_code": "DocfxVersionChanged"
       },
       "processors": {
         "ManagedReferenceDocumentProcessor": {
           "can_incremental": false,
           "incrementalPhase": "build",
-          "total_file_count": 76,
+          "total_file_count": 78,
           "skipped_file_count": 0
         },
         "TocDocumentProcessor": {
@@ -956,8 +980,8 @@
     },
     {
       "status": {
-        "can_incremental": false,
-        "details": "Cannot support incremental post processing, the reason is: last post processor info is null.",
+        "can_incremental": true,
+        "details": "Can support incremental post processing.",
         "incrementalPhase": "postProcessing",
         "total_file_count": 0,
         "skipped_file_count": 0

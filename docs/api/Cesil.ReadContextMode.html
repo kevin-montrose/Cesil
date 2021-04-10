@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Enum ReadContextMode
+    <title>Class ReadContextMode
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Enum ReadContextMode
+    <meta name="title" content="Class ReadContextMode
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,53 +64,152 @@
             <article class="content wrap" id="_content" data-uid="Cesil.ReadContextMode">
   
   
-  <h1 id="Cesil_ReadContextMode" data-uid="Cesil.ReadContextMode" class="text-break">Enum ReadContextMode
+  <h1 id="Cesil_ReadContextMode" data-uid="Cesil.ReadContextMode" class="text-break">Class ReadContextMode
   </h1>
   <div class="markdown level0 summary"><p>Indicates what a reader is doing when
 a ReadContext is created.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">ReadContextMode</span></div>
+  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_ReadContextMode_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public enum ReadContextMode : byte</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class ReadContextMode : Enum</code></pre>
   </div>
   <h3 id="fields">Fields
   </h3>
+  
+  
+  <h4 id="Cesil_ReadContextMode_ConvertingColumn" data-uid="Cesil.ReadContextMode.ConvertingColumn">ConvertingColumn</h4>
+  <div class="markdown level1 summary"><p>A single column is being converted,
+occurs only during dynamic deserialization.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadContextMode ConvertingColumn</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
   <table class="table table-bordered table-striped table-condensed">
     <thead>
       <tr>
-        <th>Name</th>
+        <th>Type</th>
         <th>Description</th>
       </tr>
-    <thead>
+    </thead>
     <tbody>
       <tr>
-        <td id="Cesil_ReadContextMode_ConvertingColumn">ConvertingColumn</td>
-        <td><p>A single column is being converted,
-occurs only during dynamic deserialization.</p>
-</td>
-      </tr>
-      <tr>
-        <td id="Cesil_ReadContextMode_ConvertingRow">ConvertingRow</td>
-        <td><p>A whole row is being converted,
-occurs only during dynamic deserialization.</p>
-</td>
-      </tr>
-      <tr>
-        <td id="Cesil_ReadContextMode_ReadingColumn">ReadingColumn</td>
-        <td><p>A single column is being read.</p>
-</td>
-      </tr>
-      <tr>
-        <td id="Cesil_ReadContextMode_ReadingRow">ReadingRow</td>
-        <td><p>A row is being read, but a particular
-column hasn't been encountered yet.</p>
-</td>
+        <td><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></td>
+        <td></td>
       </tr>
     </tbody>
-  </thead></thead></table>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadContextMode_ConvertingRow" data-uid="Cesil.ReadContextMode.ConvertingRow">ConvertingRow</h4>
+  <div class="markdown level1 summary"><p>A whole row is being converted,
+occurs only during dynamic deserialization.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadContextMode ConvertingRow</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadContextMode_ReadingColumn" data-uid="Cesil.ReadContextMode.ReadingColumn">ReadingColumn</h4>
+  <div class="markdown level1 summary"><p>A single column is being read.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadContextMode ReadingColumn</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadContextMode_ReadingRow" data-uid="Cesil.ReadContextMode.ReadingRow">ReadingRow</h4>
+  <div class="markdown level1 summary"><p>A row is being read, but a particular
+column hasn't been encountered yet.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public const ReadContextMode ReadingRow</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContextMode.html">ReadContextMode</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <h4 id="Cesil_ReadContextMode_value__" data-uid="Cesil.ReadContextMode.value__">value__</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public byte value__</code></pre>
+  </div>
+  <h5 class="fieldValue">Field Value</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Byte</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
 </article>
           </div>
           
@@ -118,16 +217,11 @@ column hasn't been encountered yet.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_ReadContextMode.md&amp;value=---%0Auid%3A%20Cesil.ReadContextMode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/ReadContextMode.cs/#L8" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

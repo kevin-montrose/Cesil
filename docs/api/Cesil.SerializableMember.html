@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Class SerializableMember
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -78,36 +78,16 @@
     <h5>Implements</h5>
     <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.SerializableMember.html">SerializableMember</a>&gt;</div>
   </div>
-  <div class="inheritedMembers">
-    <h5>Inherited Members</h5>
-    <div>
-      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.GetType()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.MemberwiseClone()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
-    </div>
-  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_SerializableMember_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public sealed class SerializableMember : IEquatable&lt;SerializableMember&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class SerializableMember : Object, IEquatable&lt;SerializableMember&gt;</code></pre>
   </div>
   <h3 id="properties">Properties
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_Name.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.Name%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L14">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_Name_" data-uid="Cesil.SerializableMember.Name*"></a>
   <h4 id="Cesil_SerializableMember_Name" data-uid="Cesil.SerializableMember.Name">Name</h4>
   <div class="markdown level1 summary"><p>The name of the column that maps to this member.</p>
@@ -134,15 +114,10 @@
   </table>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_Create_TypeInfo_System_String_Cesil_Getter_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.Create(TypeInfo%2CSystem.String%2CCesil.Getter%2CCesil.Formatter%2CCesil.ShouldSerialize%2CCesil.EmitDefaultValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L127">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_Create_" data-uid="Cesil.SerializableMember.Create*"></a>
-  <h4 id="Cesil_SerializableMember_Create_TypeInfo_System_String_Cesil_Getter_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.Create(TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">Create(TypeInfo, String, Getter, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
+  <h4 id="Cesil_SerializableMember_Create_System_Reflection_TypeInfo_System_String_Cesil_Getter_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.Create(System.Reflection.TypeInfo,System.String,Cesil.Getter,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">Create(TypeInfo, String, Getter, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
   <div class="markdown level1 summary"><p>Create a SerializableMember with an explicit type being serialized, name, getter, formatter, ShouldSerialize method, and whether to emit a default value.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -161,7 +136,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">forType</span></td>
         <td></td>
       </tr>
@@ -207,13 +182,8 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_Equals_Cesil_SerializableMember_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.Equals(Cesil.SerializableMember)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L287">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_Equals_" data-uid="Cesil.SerializableMember.Equals*"></a>
   <h4 id="Cesil_SerializableMember_Equals_Cesil_SerializableMember_" data-uid="Cesil.SerializableMember.Equals(Cesil.SerializableMember)">Equals(SerializableMember)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given SerializableMember.</p>
@@ -255,13 +225,8 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L274">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_Equals_" data-uid="Cesil.SerializableMember.Equals*"></a>
   <h4 id="Cesil_SerializableMember_Equals_System_Object_" data-uid="Cesil.SerializableMember.Equals(System.Object)">Equals(Object)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given SerializableMember.</p>
@@ -303,17 +268,10 @@
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.Equals(System.Object)</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForField_FieldInfo_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForField(FieldInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L89">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForField_" data-uid="Cesil.SerializableMember.ForField*"></a>
-  <h4 id="Cesil_SerializableMember_ForField_FieldInfo_" data-uid="Cesil.SerializableMember.ForField(FieldInfo)">ForField(FieldInfo)</h4>
+  <h4 id="Cesil_SerializableMember_ForField_System_Reflection_FieldInfo_" data-uid="Cesil.SerializableMember.ForField(System.Reflection.FieldInfo)">ForField(FieldInfo)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given field.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -332,7 +290,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="xref">System.Reflection.FieldInfo</span></td>
         <td><span class="parametername">field</span></td>
         <td></td>
       </tr>
@@ -353,15 +311,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForField_FieldInfo_System_String_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForField(FieldInfo%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L99">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForField_" data-uid="Cesil.SerializableMember.ForField*"></a>
-  <h4 id="Cesil_SerializableMember_ForField_FieldInfo_System_String_" data-uid="Cesil.SerializableMember.ForField(FieldInfo,System.String)">ForField(FieldInfo, String)</h4>
+  <h4 id="Cesil_SerializableMember_ForField_System_Reflection_FieldInfo_System_String_" data-uid="Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String)">ForField(FieldInfo, String)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given field, with the given name.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -380,7 +333,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="xref">System.Reflection.FieldInfo</span></td>
         <td><span class="parametername">field</span></td>
         <td></td>
       </tr>
@@ -406,15 +359,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForField(FieldInfo%2CSystem.String%2CCesil.Formatter)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L109">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForField_" data-uid="Cesil.SerializableMember.ForField*"></a>
-  <h4 id="Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_" data-uid="Cesil.SerializableMember.ForField(FieldInfo,System.String,Cesil.Formatter)">ForField(FieldInfo, String, Formatter)</h4>
+  <h4 id="Cesil_SerializableMember_ForField_System_Reflection_FieldInfo_System_String_Cesil_Formatter_" data-uid="Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter)">ForField(FieldInfo, String, Formatter)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given field, with the given name and formatter.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -433,7 +381,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="xref">System.Reflection.FieldInfo</span></td>
         <td><span class="parametername">field</span></td>
         <td></td>
       </tr>
@@ -464,15 +412,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForField(FieldInfo%2CSystem.String%2CCesil.Formatter%2CCesil.ShouldSerialize)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L115">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForField_" data-uid="Cesil.SerializableMember.ForField*"></a>
-  <h4 id="Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_" data-uid="Cesil.SerializableMember.ForField(FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">ForField(FieldInfo, String, Formatter, ShouldSerialize)</h4>
+  <h4 id="Cesil_SerializableMember_ForField_System_Reflection_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_" data-uid="Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">ForField(FieldInfo, String, Formatter, ShouldSerialize)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given field, with the given name, formatter, and ShouldSerialize method.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -491,7 +434,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="xref">System.Reflection.FieldInfo</span></td>
         <td><span class="parametername">field</span></td>
         <td></td>
       </tr>
@@ -527,15 +470,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForField(FieldInfo%2CSystem.String%2CCesil.Formatter%2CCesil.ShouldSerialize%2CCesil.EmitDefaultValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L121">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForField_" data-uid="Cesil.SerializableMember.ForField*"></a>
-  <h4 id="Cesil_SerializableMember_ForField_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.ForField(FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">ForField(FieldInfo, String, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
+  <h4 id="Cesil_SerializableMember_ForField_System_Reflection_FieldInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.ForField(System.Reflection.FieldInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">ForField(FieldInfo, String, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given field, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -554,7 +492,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">FieldInfo</span></td>
+        <td><span class="xref">System.Reflection.FieldInfo</span></td>
         <td><span class="parametername">field</span></td>
         <td></td>
       </tr>
@@ -595,15 +533,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForProperty_PropertyInfo_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForProperty(PropertyInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L51">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForProperty_" data-uid="Cesil.SerializableMember.ForProperty*"></a>
-  <h4 id="Cesil_SerializableMember_ForProperty_PropertyInfo_" data-uid="Cesil.SerializableMember.ForProperty(PropertyInfo)">ForProperty(PropertyInfo)</h4>
+  <h4 id="Cesil_SerializableMember_ForProperty_System_Reflection_PropertyInfo_" data-uid="Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo)">ForProperty(PropertyInfo)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given property.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -622,7 +555,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="xref">System.Reflection.PropertyInfo</span></td>
         <td><span class="parametername">property</span></td>
         <td></td>
       </tr>
@@ -643,15 +576,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForProperty(PropertyInfo%2CSystem.String)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L61">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForProperty_" data-uid="Cesil.SerializableMember.ForProperty*"></a>
-  <h4 id="Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_" data-uid="Cesil.SerializableMember.ForProperty(PropertyInfo,System.String)">ForProperty(PropertyInfo, String)</h4>
+  <h4 id="Cesil_SerializableMember_ForProperty_System_Reflection_PropertyInfo_System_String_" data-uid="Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String)">ForProperty(PropertyInfo, String)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given property, with the given name.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -670,7 +598,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="xref">System.Reflection.PropertyInfo</span></td>
         <td><span class="parametername">property</span></td>
         <td></td>
       </tr>
@@ -696,15 +624,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForProperty(PropertyInfo%2CSystem.String%2CCesil.Formatter)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L71">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForProperty_" data-uid="Cesil.SerializableMember.ForProperty*"></a>
-  <h4 id="Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_" data-uid="Cesil.SerializableMember.ForProperty(PropertyInfo,System.String,Cesil.Formatter)">ForProperty(PropertyInfo, String, Formatter)</h4>
+  <h4 id="Cesil_SerializableMember_ForProperty_System_Reflection_PropertyInfo_System_String_Cesil_Formatter_" data-uid="Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter)">ForProperty(PropertyInfo, String, Formatter)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given property, with the given name and formatter.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -723,7 +646,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="xref">System.Reflection.PropertyInfo</span></td>
         <td><span class="parametername">property</span></td>
         <td></td>
       </tr>
@@ -754,15 +677,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForProperty(PropertyInfo%2CSystem.String%2CCesil.Formatter%2CCesil.ShouldSerialize)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L77">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForProperty_" data-uid="Cesil.SerializableMember.ForProperty*"></a>
-  <h4 id="Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_" data-uid="Cesil.SerializableMember.ForProperty(PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">ForProperty(PropertyInfo, String, Formatter, ShouldSerialize)</h4>
+  <h4 id="Cesil_SerializableMember_ForProperty_System_Reflection_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_" data-uid="Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize)">ForProperty(PropertyInfo, String, Formatter, ShouldSerialize)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given property, with the given name, formatter, and ShouldSerialize method.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -781,7 +699,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="xref">System.Reflection.PropertyInfo</span></td>
         <td><span class="parametername">property</span></td>
         <td></td>
       </tr>
@@ -817,15 +735,10 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ForProperty(PropertyInfo%2CSystem.String%2CCesil.Formatter%2CCesil.ShouldSerialize%2CCesil.EmitDefaultValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L83">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ForProperty_" data-uid="Cesil.SerializableMember.ForProperty*"></a>
-  <h4 id="Cesil_SerializableMember_ForProperty_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.ForProperty(PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">ForProperty(PropertyInfo, String, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
+  <h4 id="Cesil_SerializableMember_ForProperty_System_Reflection_PropertyInfo_System_String_Cesil_Formatter_Cesil_ShouldSerialize_Cesil_EmitDefaultValue_" data-uid="Cesil.SerializableMember.ForProperty(System.Reflection.PropertyInfo,System.String,Cesil.Formatter,Cesil.ShouldSerialize,Cesil.EmitDefaultValue)">ForProperty(PropertyInfo, String, Formatter, ShouldSerialize, EmitDefaultValue)</h4>
   <div class="markdown level1 summary"><p>Creates a SerializableMember for the given property, with the given name, formatter, ShouldSerialize method, and whether to emit a default value.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -844,7 +757,7 @@
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">PropertyInfo</span></td>
+        <td><span class="xref">System.Reflection.PropertyInfo</span></td>
         <td><span class="parametername">property</span></td>
         <td></td>
       </tr>
@@ -885,13 +798,8 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L324">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_GetHashCode_" data-uid="Cesil.SerializableMember.GetHashCode*"></a>
   <h4 id="Cesil_SerializableMember_GetHashCode" data-uid="Cesil.SerializableMember.GetHashCode">GetHashCode()</h4>
   <div class="markdown level1 summary"><p>Returns a stable hash for this SerializableMember.</p>
@@ -916,15 +824,8 @@
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.GetHashCode()</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_ToString.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L332">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_ToString_" data-uid="Cesil.SerializableMember.ToString*"></a>
   <h4 id="Cesil_SerializableMember_ToString" data-uid="Cesil.SerializableMember.ToString">ToString()</h4>
   <div class="markdown level1 summary"><p>Describes this SerializableMember.</p>
@@ -950,17 +851,10 @@
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.ToString()</span></div>
   <h3 id="operators">Operators
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_op_Equality_Cesil_SerializableMember_Cesil_SerializableMember_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.op_Equality(Cesil.SerializableMember%2CCesil.SerializableMember)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L338">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_op_Equality_" data-uid="Cesil.SerializableMember.op_Equality*"></a>
   <h4 id="Cesil_SerializableMember_op_Equality_Cesil_SerializableMember_Cesil_SerializableMember_" data-uid="Cesil.SerializableMember.op_Equality(Cesil.SerializableMember,Cesil.SerializableMember)">Equality(SerializableMember, SerializableMember)</h4>
   <div class="markdown level1 summary"><p>Compare two SerializableMembers for equality</p>
@@ -1007,13 +901,8 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember_op_Inequality_Cesil_SerializableMember_Cesil_SerializableMember_.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember.op_Inequality(Cesil.SerializableMember%2CCesil.SerializableMember)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L344">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SerializableMember_op_Inequality_" data-uid="Cesil.SerializableMember.op_Inequality*"></a>
   <h4 id="Cesil_SerializableMember_op_Inequality_Cesil_SerializableMember_Cesil_SerializableMember_" data-uid="Cesil.SerializableMember.op_Inequality(Cesil.SerializableMember,Cesil.SerializableMember)">Inequality(SerializableMember, SerializableMember)</h4>
   <div class="markdown level1 summary"><p>Compare two SerializableMembers for inequality</p>
@@ -1062,7 +951,7 @@
   </table>
   <h3 id="implements">Implements</h3>
   <div>
-      <span class="xref">System.IEquatable&lt;T&gt;</span>
+      <span class="xref">System.IEquatable&lt;&gt;</span>
   </div>
 </article>
           </div>
@@ -1071,16 +960,11 @@
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SerializableMember.md&amp;value=---%0Auid%3A%20Cesil.SerializableMember%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SerializableMember.cs/#L9" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

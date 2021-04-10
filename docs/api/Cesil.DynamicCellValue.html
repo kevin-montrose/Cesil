@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Struct DynamicCellValue
+    <title>Class DynamicCellValue
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Struct DynamicCellValue
+    <meta name="title" content="Class DynamicCellValue
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,43 +64,31 @@
             <article class="content wrap" id="_content" data-uid="Cesil.DynamicCellValue">
   
   
-  <h1 id="Cesil_DynamicCellValue" data-uid="Cesil.DynamicCellValue" class="text-break">Struct DynamicCellValue
+  <h1 id="Cesil_DynamicCellValue" data-uid="Cesil.DynamicCellValue" class="text-break">Class DynamicCellValue
   </h1>
   <div class="markdown level0 summary"><p>Wrapper around a dynamic cell which is to be written
 by an I(Async)Writer.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">DynamicCellValue</span></div>
+  </div>
   <div classs="implements">
     <h5>Implements</h5>
     <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</div>
-  </div>
-  <div class="inheritedMembers">
-    <h5>Inherited Members</h5>
-    <div>
-      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.GetType()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
-    </div>
   </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_DynamicCellValue_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public struct DynamicCellValue : IEquatable&lt;DynamicCellValue&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class DynamicCellValue : ValueType, IEquatable&lt;DynamicCellValue&gt;</code></pre>
   </div>
   <h3 id="properties">Properties
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Formatter.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Formatter%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L32">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Formatter_" data-uid="Cesil.DynamicCellValue.Formatter*"></a>
   <h4 id="Cesil_DynamicCellValue_Formatter" data-uid="Cesil.DynamicCellValue.Formatter">Formatter</h4>
   <div class="markdown level1 summary"><p>Instance of Formatter to use when formatting the associated value
@@ -126,13 +114,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_HasName.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.HasName%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L15">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_HasName_" data-uid="Cesil.DynamicCellValue.HasName*"></a>
   <h4 id="Cesil_DynamicCellValue_HasName" data-uid="Cesil.DynamicCellValue.HasName">HasName</h4>
   <div class="markdown level1 summary"><p>Returns true if Name is set.</p>
@@ -157,13 +140,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Name.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Name%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L22">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Name_" data-uid="Cesil.DynamicCellValue.Name*"></a>
   <h4 id="Cesil_DynamicCellValue_Name" data-uid="Cesil.DynamicCellValue.Name">Name</h4>
   <div class="markdown level1 summary"><p>Name of the column the cell belongs to, throws if Name is not set.</p>
@@ -188,13 +166,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Value.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Value%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L26">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Value_" data-uid="Cesil.DynamicCellValue.Value*"></a>
   <h4 id="Cesil_DynamicCellValue_Value" data-uid="Cesil.DynamicCellValue.Value">Value</h4>
   <div class="markdown level1 summary"><p>Cell value</p>
@@ -221,13 +194,8 @@ for writing.</p>
   </table>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Create_System_String_System_Object_Cesil_Formatter_.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Create(System.String%2CSystem.Object%2CCesil.Formatter)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L50">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Create_" data-uid="Cesil.DynamicCellValue.Create*"></a>
   <h4 id="Cesil_DynamicCellValue_Create_System_String_System_Object_Cesil_Formatter_" data-uid="Cesil.DynamicCellValue.Create(System.String,System.Object,Cesil.Formatter)">Create(String, Object, Formatter)</h4>
   <div class="markdown level1 summary"><p>Create a DynamicCellValue to format the given value of the given column.</p>
@@ -280,13 +248,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Equals_Cesil_DynamicCellValue_.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Equals(Cesil.DynamicCellValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L93">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Equals_" data-uid="Cesil.DynamicCellValue.Equals*"></a>
   <h4 id="Cesil_DynamicCellValue_Equals_Cesil_DynamicCellValue_" data-uid="Cesil.DynamicCellValue.Equals(Cesil.DynamicCellValue)">Equals(DynamicCellValue)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given DynamicCellValue.</p>
@@ -328,13 +291,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L80">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_Equals_" data-uid="Cesil.DynamicCellValue.Equals*"></a>
   <h4 id="Cesil_DynamicCellValue_Equals_System_Object_" data-uid="Cesil.DynamicCellValue.Equals(System.Object)">Equals(Object)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given DynamicCellValue.</p>
@@ -376,15 +334,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.Equals(System.Object)</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L121">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_GetHashCode_" data-uid="Cesil.DynamicCellValue.GetHashCode*"></a>
   <h4 id="Cesil_DynamicCellValue_GetHashCode" data-uid="Cesil.DynamicCellValue.GetHashCode">GetHashCode()</h4>
   <div class="markdown level1 summary"><p>Returns a stable hash for this DynamicCellValue.</p>
@@ -409,15 +360,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.GetHashCode()</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_ToString.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L129">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_ToString_" data-uid="Cesil.DynamicCellValue.ToString*"></a>
   <h4 id="Cesil_DynamicCellValue_ToString" data-uid="Cesil.DynamicCellValue.ToString">ToString()</h4>
   <div class="markdown level1 summary"><p>Returns a representation of this DynamicCellValue struct.</p>
@@ -443,17 +387,10 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.ToString()</span></div>
   <h3 id="operators">Operators
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_op_Equality_Cesil_DynamicCellValue_Cesil_DynamicCellValue_.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.op_Equality(Cesil.DynamicCellValue%2CCesil.DynamicCellValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L135">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_op_Equality_" data-uid="Cesil.DynamicCellValue.op_Equality*"></a>
   <h4 id="Cesil_DynamicCellValue_op_Equality_Cesil_DynamicCellValue_Cesil_DynamicCellValue_" data-uid="Cesil.DynamicCellValue.op_Equality(Cesil.DynamicCellValue,Cesil.DynamicCellValue)">Equality(DynamicCellValue, DynamicCellValue)</h4>
   <div class="markdown level1 summary"><p>Compare two DynamicCellValues for equality</p>
@@ -500,13 +437,8 @@ for writing.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue_op_Inequality_Cesil_DynamicCellValue_Cesil_DynamicCellValue_.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue.op_Inequality(Cesil.DynamicCellValue%2CCesil.DynamicCellValue)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L141">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_DynamicCellValue_op_Inequality_" data-uid="Cesil.DynamicCellValue.op_Inequality*"></a>
   <h4 id="Cesil_DynamicCellValue_op_Inequality_Cesil_DynamicCellValue_Cesil_DynamicCellValue_" data-uid="Cesil.DynamicCellValue.op_Inequality(Cesil.DynamicCellValue,Cesil.DynamicCellValue)">Inequality(DynamicCellValue, DynamicCellValue)</h4>
   <div class="markdown level1 summary"><p>Compare two DynamicCellValues for inequality</p>
@@ -555,7 +487,7 @@ for writing.</p>
   </table>
   <h3 id="implements">Implements</h3>
   <div>
-      <span class="xref">System.IEquatable&lt;T&gt;</span>
+      <span class="xref">System.IEquatable&lt;&gt;</span>
   </div>
 </article>
           </div>
@@ -564,16 +496,11 @@ for writing.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_DynamicCellValue.md&amp;value=---%0Auid%3A%20Cesil.DynamicCellValue%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/DynamicCellValue.cs/#L10" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width">
     <meta name="title" content="Class SurrogateTypeDescriber
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -81,36 +81,16 @@ and then the uncontrolled type is (de)serialized as if it were the surrogate typ
     <div><a class="xref" href="Cesil.ITypeDescriber.html">ITypeDescriber</a></div>
     <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.SurrogateTypeDescriber.html">SurrogateTypeDescriber</a>&gt;</div>
   </div>
-  <div class="inheritedMembers">
-    <h5>Inherited Members</h5>
-    <div>
-      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.GetType()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.MemberwiseClone()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
-    </div>
-  </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_SurrogateTypeDescriber_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public sealed class SurrogateTypeDescriber : ITypeDescriber, IEquatable&lt;SurrogateTypeDescriber&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class SurrogateTypeDescriber : Object, ITypeDescriber, IEquatable&lt;SurrogateTypeDescriber&gt;</code></pre>
   </div>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_CreateBuilder.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.CreateBuilder%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L54">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_CreateBuilder_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_CreateBuilder" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder">CreateBuilder()</h4>
   <div class="markdown level1 summary"><p>Creates a SurrogateTypeDescriberBuilder which using TypeDescriber.Default to describes surrogates,
@@ -136,13 +116,8 @@ and falls back to TypeDescriber.Default if no surrogate is registered.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L91">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_CreateBuilder_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriber)">CreateBuilder(SurrogateTypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Creates a SurrogateTypeDescriberBuilder which copies it's fallback behavior, type describer, fallback type describer, and
@@ -185,13 +160,8 @@ surrogate types from the given SurrogateTypeDescriber.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L64">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_CreateBuilder_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior)">CreateBuilder(SurrogateTypeDescriberFallbackBehavior)</h4>
   <div class="markdown level1 summary"><p>Creates a SurrogateTypeDescriberBuilder with the given fallback behavior.</p>
@@ -236,13 +206,8 @@ allows it.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_Cesil_ITypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior%2CCesil.ITypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L74">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_CreateBuilder_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_Cesil_ITypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior,Cesil.ITypeDescriber)">CreateBuilder(SurrogateTypeDescriberFallbackBehavior, ITypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Creates a SurrogateTypeDescriberBuilder with the given fallback behavior and type describer.</p>
@@ -292,13 +257,8 @@ allows it.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_Cesil_ITypeDescriber_Cesil_ITypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior%2CCesil.ITypeDescriber%2CCesil.ITypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L84">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_CreateBuilder_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_CreateBuilder_Cesil_SurrogateTypeDescriberFallbackBehavior_Cesil_ITypeDescriber_Cesil_ITypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.CreateBuilder(Cesil.SurrogateTypeDescriberFallbackBehavior,Cesil.ITypeDescriber,Cesil.ITypeDescriber)">CreateBuilder(SurrogateTypeDescriberFallbackBehavior, ITypeDescriber, ITypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Creates a SurrogateTypeDescriberBuilder with the given fallback behavior, type describer, and fallback type describer.</p>
@@ -353,15 +313,10 @@ allows it.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L104">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_EnumerateMembersToDeserialize_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToDeserialize*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_EnumerateMembersToDeserialize_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToDeserialize(TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_EnumerateMembersToDeserialize_System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToDeserialize(System.Reflection.TypeInfo)">EnumerateMembersToDeserialize(TypeInfo)</h4>
   <div class="markdown level1 summary"><p>Enumerate all the members on forType to deserialize.</p>
 <p>If a surrogate is registered, the surrogate will be used for discovery - the returned
 members will be mapped from the surrogate to forType.</p>
@@ -385,7 +340,7 @@ ThrowOnNoRegisteredSurrogate.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">forType</span></td>
         <td></td>
       </tr>
@@ -406,15 +361,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_EnumerateMembersToSerialize_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.EnumerateMembersToSerialize(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L138">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_EnumerateMembersToSerialize_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToSerialize*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_EnumerateMembersToSerialize_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToSerialize(TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_EnumerateMembersToSerialize_System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.EnumerateMembersToSerialize(System.Reflection.TypeInfo)">EnumerateMembersToSerialize(TypeInfo)</h4>
   <div class="markdown level1 summary"><p>Enumerate all the members on forType to serialize.</p>
 <p>If a surrogate is registered, the surrogate will be used for discovery - the returned
 members will be mapped from the surrogate to forType.</p>
@@ -438,7 +388,7 @@ ThrowOnNoRegisteredSurrogate.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">forType</span></td>
         <td></td>
       </tr>
@@ -459,13 +409,8 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_Equals_Cesil_SurrogateTypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.Equals(Cesil.SurrogateTypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L491">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_Equals_" data-uid="Cesil.SurrogateTypeDescriber.Equals*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_Equals_Cesil_SurrogateTypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.Equals(Cesil.SurrogateTypeDescriber)">Equals(SurrogateTypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Returns true if this SurrogateTypeDescriber equals the given SurrogateTypeDescriber.</p>
@@ -507,13 +452,8 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L478">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_Equals_" data-uid="Cesil.SurrogateTypeDescriber.Equals*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_Equals_System_Object_" data-uid="Cesil.SurrogateTypeDescriber.Equals(System.Object)">Equals(Object)</h4>
   <div class="markdown level1 summary"><p>Returns true if this SurrogateTypeDescriber equals the given object</p>
@@ -555,17 +495,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.Equals(System.Object)</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext%40%2CSystem.Object%2CSpan%7BCesil.DynamicCellValue%7D)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L570">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_Span_Cesil_DynamicCellValue__" data-uid="Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,Span{Cesil.DynamicCellValue})">GetCellsForDynamicRow(WriteContext, Object, Span&lt;DynamicCellValue&gt;)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_System_Span_Cesil_DynamicCellValue__" data-uid="Cesil.SurrogateTypeDescriber.GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">GetCellsForDynamicRow(WriteContext, Object, Span&lt;DynamicCellValue&gt;)</h4>
   <div class="markdown level1 summary"><p>Delegates to TypeDescriber.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -594,7 +527,7 @@ ThrowOnNoRegisteredSurrogate.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">Span</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td><span class="xref">System.Span</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
         <td><span class="parametername">cells</span></td>
         <td></td>
       </tr>
@@ -615,15 +548,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext%40%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L556">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
   <div class="markdown level1 summary"><p>Delegates to TypeDescriber.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -647,7 +575,7 @@ ThrowOnNoRegisteredSurrogate.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">targetType</span></td>
         <td></td>
       </tr>
@@ -668,15 +596,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext%40%2CSystem.Collections.Generic.IEnumerable%7BCesil.ColumnIdentifier%7D%2CTypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L563">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicRowConverter*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
   <div class="markdown level1 summary"><p>Delegates to TypeDescriber.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
@@ -705,7 +628,7 @@ ThrowOnNoRegisteredSurrogate.</p>
         <td></td>
       </tr>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">targetType</span></td>
         <td></td>
       </tr>
@@ -726,13 +649,8 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L470">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_GetHashCode_" data-uid="Cesil.SurrogateTypeDescriber.GetHashCode*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_GetHashCode" data-uid="Cesil.SurrogateTypeDescriber.GetHashCode">GetHashCode()</h4>
   <div class="markdown level1 summary"><p>Returns a stable hash for this SurrogateTypeDescriber.</p>
@@ -757,17 +675,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.GetHashCode()</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_GetInstanceProvider_TypeInfo_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.GetInstanceProvider(TypeInfo)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L172">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_GetInstanceProvider_" data-uid="Cesil.SurrogateTypeDescriber.GetInstanceProvider*"></a>
-  <h4 id="Cesil_SurrogateTypeDescriber_GetInstanceProvider_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetInstanceProvider(TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
+  <h4 id="Cesil_SurrogateTypeDescriber_GetInstanceProvider_System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.GetInstanceProvider(System.Reflection.TypeInfo)">GetInstanceProvider(TypeInfo)</h4>
   <div class="markdown level1 summary"><p>Gets an instance builder usable to construct the given type.</p>
 <p>If a surrogate is registered, the surrogate will be used for discovery - the returned
 constructor will be mapped from the surrogate to forType.</p>
@@ -791,7 +702,7 @@ ThrowOnNoRegisteredSurrogate.</p>
     </thead>
     <tbody>
       <tr>
-        <td><span class="xref">TypeInfo</span></td>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
         <td><span class="parametername">forType</span></td>
         <td></td>
       </tr>
@@ -812,13 +723,8 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_ToString.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L516">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_ToString_" data-uid="Cesil.SurrogateTypeDescriber.ToString*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_ToString" data-uid="Cesil.SurrogateTypeDescriber.ToString">ToString()</h4>
   <div class="markdown level1 summary"><p>Returns a representation of this SurrogateTypeDescriber object.</p>
@@ -844,17 +750,10 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.Object.ToString()</span></div>
   <h3 id="operators">Operators
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_op_Equality_Cesil_SurrogateTypeDescriber_Cesil_SurrogateTypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.op_Equality(Cesil.SurrogateTypeDescriber%2CCesil.SurrogateTypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L579">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_op_Equality_" data-uid="Cesil.SurrogateTypeDescriber.op_Equality*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_op_Equality_Cesil_SurrogateTypeDescriber_Cesil_SurrogateTypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.op_Equality(Cesil.SurrogateTypeDescriber,Cesil.SurrogateTypeDescriber)">Equality(SurrogateTypeDescriber, SurrogateTypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Compare two SurrogateTypeDescribers for equality</p>
@@ -901,13 +800,8 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber_op_Inequality_Cesil_SurrogateTypeDescriber_Cesil_SurrogateTypeDescriber_.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber.op_Inequality(Cesil.SurrogateTypeDescriber%2CCesil.SurrogateTypeDescriber)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L586">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_SurrogateTypeDescriber_op_Inequality_" data-uid="Cesil.SurrogateTypeDescriber.op_Inequality*"></a>
   <h4 id="Cesil_SurrogateTypeDescriber_op_Inequality_Cesil_SurrogateTypeDescriber_Cesil_SurrogateTypeDescriber_" data-uid="Cesil.SurrogateTypeDescriber.op_Inequality(Cesil.SurrogateTypeDescriber,Cesil.SurrogateTypeDescriber)">Inequality(SurrogateTypeDescriber, SurrogateTypeDescriber)</h4>
   <div class="markdown level1 summary"><p>Compare two SurrogateTypeDescribers for inequality</p>
@@ -954,12 +848,165 @@ ThrowOnNoRegisteredSurrogate.</p>
       </tr>
     </tbody>
   </table>
+  <h3 id="eii">Explicit Interface Implementations
+  </h3>
+  
+  
+  <a id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetCellsForDynamicRow_" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetCellsForDynamicRow*"></a>
+  <h4 id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetCellsForDynamicRow_Cesil_WriteContext__System_Object_System_Span_Cesil_DynamicCellValue__" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetCellsForDynamicRow(Cesil.WriteContext@,System.Object,System.Span{Cesil.DynamicCellValue})">ITypeDescriber.GetCellsForDynamicRow(WriteContext, Object, Span&lt;DynamicCellValue&gt;)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">int ITypeDescriber.GetCellsForDynamicRow(in WriteContext context, object row, Span&lt;DynamicCellValue&gt; cells)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.WriteContext.html">WriteContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Object</span></td>
+        <td><span class="parametername">row</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Span</span>&lt;<a class="xref" href="Cesil.DynamicCellValue.html">DynamicCellValue</a>&gt;</td>
+        <td><span class="parametername">cells</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="xref">System.Int32</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetDynamicCellParserFor_" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetDynamicCellParserFor*"></a>
+  <h4 id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetDynamicCellParserFor_Cesil_ReadContext__System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetDynamicCellParserFor(Cesil.ReadContext@,System.Reflection.TypeInfo)">ITypeDescriber.GetDynamicCellParserFor(ReadContext, TypeInfo)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">Parser ITypeDescriber.GetDynamicCellParserFor(in ReadContext context, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.Parser.html">Parser</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  
+  
+  <a id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetDynamicRowConverter_" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetDynamicRowConverter*"></a>
+  <h4 id="Cesil_SurrogateTypeDescriber_Cesil_ITypeDescriber_GetDynamicRowConverter_Cesil_ReadContext__System_Collections_Generic_IEnumerable_Cesil_ColumnIdentifier__System_Reflection_TypeInfo_" data-uid="Cesil.SurrogateTypeDescriber.Cesil#ITypeDescriber#GetDynamicRowConverter(Cesil.ReadContext@,System.Collections.Generic.IEnumerable{Cesil.ColumnIdentifier},System.Reflection.TypeInfo)">ITypeDescriber.GetDynamicRowConverter(ReadContext, IEnumerable&lt;ColumnIdentifier&gt;, TypeInfo)</h4>
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+  <h5 class="decalaration">Declaration</h5>
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">DynamicRowConverter ITypeDescriber.GetDynamicRowConverter(in ReadContext context, IEnumerable&lt;ColumnIdentifier&gt; columns, TypeInfo targetType)</code></pre>
+  </div>
+  <h5 class="parameters">Parameters</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Name</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.ReadContext.html">ReadContext</a></td>
+        <td><span class="parametername">context</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Collections.Generic.IEnumerable</span>&lt;<a class="xref" href="Cesil.ColumnIdentifier.html">ColumnIdentifier</a>&gt;</td>
+        <td><span class="parametername">columns</span></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><span class="xref">System.Reflection.TypeInfo</span></td>
+        <td><span class="parametername">targetType</span></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <h5 class="returns">Returns</h5>
+  <table class="table table-bordered table-striped table-condensed">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a class="xref" href="Cesil.DynamicRowConverter.html">DynamicRowConverter</a></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
   <h3 id="implements">Implements</h3>
   <div>
       <a class="xref" href="Cesil.ITypeDescriber.html">ITypeDescriber</a>
   </div>
   <div>
-      <span class="xref">System.IEquatable&lt;T&gt;</span>
+      <span class="xref">System.IEquatable&lt;&gt;</span>
   </div>
 </article>
           </div>
@@ -968,16 +1015,11 @@ ThrowOnNoRegisteredSurrogate.</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_SurrogateTypeDescriber.md&amp;value=---%0Auid%3A%20Cesil.SurrogateTypeDescriber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/TypeDescriber/SurrogateTypeDescriber.cs/#L18" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>

@@ -5,12 +5,12 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Struct WriteContext
+    <title>Class WriteContext
    </title>
     <meta name="viewport" content="width=device-width">
-    <meta name="title" content="Struct WriteContext
+    <meta name="title" content="Class WriteContext
    ">
-    <meta name="generator" content="docfx 2.52.0.0">
+    <meta name="generator" content="docfx 2.57.0.0">
     
     <link rel="shortcut icon" href="../favicon.ico">
     <link rel="stylesheet" href="../styles/docfx.vendor.css">
@@ -64,42 +64,30 @@
             <article class="content wrap" id="_content" data-uid="Cesil.WriteContext">
   
   
-  <h1 id="Cesil_WriteContext" data-uid="Cesil.WriteContext" class="text-break">Struct WriteContext
+  <h1 id="Cesil_WriteContext" data-uid="Cesil.WriteContext" class="text-break">Class WriteContext
   </h1>
   <div class="markdown level0 summary"><p>Context object provided during write operations.</p>
 </div>
   <div class="markdown level0 conceptual"></div>
+  <div class="inheritance">
+    <h5>Inheritance</h5>
+    <div class="level0"><span class="xref">System.Object</span></div>
+    <div class="level1"><span class="xref">WriteContext</span></div>
+  </div>
   <div classs="implements">
     <h5>Implements</h5>
     <div><span class="xref">System.IEquatable</span>&lt;<a class="xref" href="Cesil.WriteContext.html">WriteContext</a>&gt;</div>
-  </div>
-  <div class="inheritedMembers">
-    <h5>Inherited Members</h5>
-    <div>
-      <span class="xref">System.Object.Equals(System.Object, System.Object)</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.GetType()</span>
-    </div>
-    <div>
-      <span class="xref">System.Object.ReferenceEquals(System.Object, System.Object)</span>
-    </div>
   </div>
   <h6><strong>Namespace</strong>: <a class="xref" href="Cesil.html">Cesil</a></h6>
   <h6><strong>Assembly</strong>: Cesil.dll</h6>
   <h5 id="Cesil_WriteContext_syntax">Syntax</h5>
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public struct WriteContext : IEquatable&lt;WriteContext&gt;</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class WriteContext : ValueType, IEquatable&lt;WriteContext&gt;</code></pre>
   </div>
   <h3 id="properties">Properties
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Column.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Column%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L80">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Column_" data-uid="Cesil.WriteContext.Column*"></a>
   <h4 id="Cesil_WriteContext_Column" data-uid="Cesil.WriteContext.Column">Column</h4>
   <div class="markdown level1 summary"><p>Column being written.</p>
@@ -125,13 +113,8 @@
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Context.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Context%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L103">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Context_" data-uid="Cesil.WriteContext.Context*"></a>
   <h4 id="Cesil_WriteContext_Context" data-uid="Cesil.WriteContext.Context">Context</h4>
   <div class="markdown level1 summary"><p>The object, if any, provided to the call to CreateWriter or
@@ -159,13 +142,8 @@ by this context.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_HasColumn.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.HasColumn%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L72">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_HasColumn_" data-uid="Cesil.WriteContext.HasColumn*"></a>
   <h4 id="Cesil_WriteContext_HasColumn" data-uid="Cesil.WriteContext.HasColumn">HasColumn</h4>
   <div class="markdown level1 summary"><p>Whether or not Column is available.</p>
@@ -190,13 +168,8 @@ by this context.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_HasRowNumber.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.HasRowNumber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L27">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_HasRowNumber_" data-uid="Cesil.WriteContext.HasRowNumber*"></a>
   <h4 id="Cesil_WriteContext_HasRowNumber" data-uid="Cesil.WriteContext.HasRowNumber">HasRowNumber</h4>
   <div class="markdown level1 summary"><p>Whether or not RowNumber is available.</p>
@@ -221,13 +194,8 @@ by this context.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Mode.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Mode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L20">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Mode_" data-uid="Cesil.WriteContext.Mode*"></a>
   <h4 id="Cesil_WriteContext_Mode" data-uid="Cesil.WriteContext.Mode">Mode</h4>
   <div class="markdown level1 summary"><p>What, precisely, a writer is doing.</p>
@@ -252,13 +220,8 @@ by this context.</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Options.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Options%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L15">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Options_" data-uid="Cesil.WriteContext.Options*"></a>
   <h4 id="Cesil_WriteContext_Options" data-uid="Cesil.WriteContext.Options">Options</h4>
   <div class="markdown level1 summary"><p>Options used to create writer.  Useful for accessing
@@ -284,13 +247,8 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_RowNumber.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.RowNumber%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L48">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_RowNumber_" data-uid="Cesil.WriteContext.RowNumber*"></a>
   <h4 id="Cesil_WriteContext_RowNumber" data-uid="Cesil.WriteContext.RowNumber">RowNumber</h4>
   <div class="markdown level1 summary"><p>The index of the row being written (0-based).</p>
@@ -318,13 +276,8 @@ shared configurations, like MemoryPool(char).</p>
   </table>
   <h3 id="methods">Methods
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Equals_Cesil_WriteContext_.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Equals(Cesil.WriteContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L168">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Equals_" data-uid="Cesil.WriteContext.Equals*"></a>
   <h4 id="Cesil_WriteContext_Equals_Cesil_WriteContext_" data-uid="Cesil.WriteContext.Equals(Cesil.WriteContext)">Equals(WriteContext)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given WriteContext.</p>
@@ -366,13 +319,8 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_Equals_System_Object_.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.Equals(System.Object)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L155">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_Equals_" data-uid="Cesil.WriteContext.Equals*"></a>
   <h4 id="Cesil_WriteContext_Equals_System_Object_" data-uid="Cesil.WriteContext.Equals(System.Object)">Equals(Object)</h4>
   <div class="markdown level1 summary"><p>Returns true if this object equals the given WriteContext.</p>
@@ -414,15 +362,8 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.Equals(System.Object)</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_GetHashCode.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.GetHashCode%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L178">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_GetHashCode_" data-uid="Cesil.WriteContext.GetHashCode*"></a>
   <h4 id="Cesil_WriteContext_GetHashCode" data-uid="Cesil.WriteContext.GetHashCode">GetHashCode()</h4>
   <div class="markdown level1 summary"><p>Returns a stable hash for this WriteContext.</p>
@@ -447,15 +388,8 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.GetHashCode()</span></div>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_ToString.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.ToString%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L184">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_ToString_" data-uid="Cesil.WriteContext.ToString*"></a>
   <h4 id="Cesil_WriteContext_ToString" data-uid="Cesil.WriteContext.ToString">ToString()</h4>
   <div class="markdown level1 summary"><p>Returns a string representation of this WriteContext.</p>
@@ -480,17 +414,10 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <h5 class="overrides">Overrides</h5>
-  <div><span class="xref">System.ValueType.ToString()</span></div>
   <h3 id="operators">Operators
   </h3>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_op_Equality_Cesil_WriteContext_Cesil_WriteContext_.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.op_Equality(Cesil.WriteContext%2CCesil.WriteContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L199">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_op_Equality_" data-uid="Cesil.WriteContext.op_Equality*"></a>
   <h4 id="Cesil_WriteContext_op_Equality_Cesil_WriteContext_Cesil_WriteContext_" data-uid="Cesil.WriteContext.op_Equality(Cesil.WriteContext,Cesil.WriteContext)">Equality(WriteContext, WriteContext)</h4>
   <div class="markdown level1 summary"><p>Compare two WriteContexts for equality</p>
@@ -537,13 +464,8 @@ shared configurations, like MemoryPool(char).</p>
       </tr>
     </tbody>
   </table>
-  <span class="small pull-right mobile-hide">
-    <span class="divider">|</span>
-    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext_op_Inequality_Cesil_WriteContext_Cesil_WriteContext_.md&amp;value=---%0Auid%3A%20Cesil.WriteContext.op_Inequality(Cesil.WriteContext%2CCesil.WriteContext)%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">Improve this Doc</a>
-  </span>
-  <span class="small pull-right mobile-hide">
-    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L205">View Source</a>
-  </span>
+  
+  
   <a id="Cesil_WriteContext_op_Inequality_" data-uid="Cesil.WriteContext.op_Inequality*"></a>
   <h4 id="Cesil_WriteContext_op_Inequality_Cesil_WriteContext_Cesil_WriteContext_" data-uid="Cesil.WriteContext.op_Inequality(Cesil.WriteContext,Cesil.WriteContext)">Inequality(WriteContext, WriteContext)</h4>
   <div class="markdown level1 summary"><p>Compare two WriteContexts for inequality</p>
@@ -592,7 +514,7 @@ shared configurations, like MemoryPool(char).</p>
   </table>
   <h3 id="implements">Implements</h3>
   <div>
-      <span class="xref">System.IEquatable&lt;T&gt;</span>
+      <span class="xref">System.IEquatable&lt;&gt;</span>
   </div>
 </article>
           </div>
@@ -601,16 +523,11 @@ shared configurations, like MemoryPool(char).</p>
             <div class="sideaffix">
               <div class="contribution">
                 <ul class="nav">
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/new/vNext/apiSpec/new?filename=Cesil_WriteContext.md&amp;value=---%0Auid%3A%20Cesil.WriteContext%0Asummary%3A%20'*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax'%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A" class="contribution-link">Improve this Doc</a>
-                  </li>
-                  <li>
-                    <a href="https://github.com/kevin-montrose/Cesil/blob/vNext/Cesil/Context/WriteContext.cs/#L9" class="contribution-link">View Source</a>
-                  </li>
                 </ul>
               </div>
               <nav class="bs-docs-sidebar hidden-print hidden-xs hidden-sm affix" id="affix">
-              <!-- <p><a class="back-to-top" href="#top">Back to top</a><p> -->
+                <h5>In This Article</h5>
+                <div></div>
               </nav>
             </div>
           </div>
