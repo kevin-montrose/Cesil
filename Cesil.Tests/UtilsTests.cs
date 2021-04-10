@@ -246,12 +246,12 @@ namespace Cesil.Tests
             Assert.True(typeof(ValueTuple<,,,,,,,>).GetTypeInfo().IsBigValueTuple());
         }
 
-        class _IsRecordType1
+        private class _IsRecordType1
         {
             public int A { get; init; }
         }
 
-        class _IsRecordType2
+        private class _IsRecordType2
         {
             public int A { get; init; }
 
@@ -261,7 +261,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _IsRecordType3
+        private class _IsRecordType3
         {
             public int A { get; init; }
 
@@ -276,7 +276,7 @@ namespace Cesil.Tests
             }
         }
 
-        class _IsRecordType4
+        private class _IsRecordType4
         {
             public int A { get; init; }
 
@@ -294,9 +294,9 @@ namespace Cesil.Tests
             => new _IsRecordType4(this);
         }
 
-        record _IsRecordType5(int A);
+        private record _IsRecordType5(int A);
 
-        record _IsRecordType6(int A)
+        private record _IsRecordType6(int A)
         {
             public _IsRecordType6(string b): this(b.Length)
             {
@@ -304,11 +304,11 @@ namespace Cesil.Tests
             }
         }
 
-        record _IsRecordType7(string B): _IsRecordType6(B.Length)
+        private record _IsRecordType7(string B): _IsRecordType6(B.Length)
         {
         }
 
-        record _IsRecordType8(string B) : _IsRecordType7(B)
+        private record _IsRecordType8(string B) : _IsRecordType7(B)
         {
             public _IsRecordType8(int A, string B): this(B)
             {
@@ -316,7 +316,7 @@ namespace Cesil.Tests
             }
         }
 
-        record _IsRecordType9;
+        private record _IsRecordType9;
 
         [Fact]
         public void IsRecordType()
@@ -407,7 +407,7 @@ namespace Cesil.Tests
             Assert.Equal(0, d9);
         }
 
-        class _IsAutoInit
+        private class _IsAutoInit
         {
             public int A { get; }
             public int B { get; set; }

@@ -200,13 +200,16 @@ namespace Cesil.Tests
             Assert.Throws<InvalidOperationException>(() => DefaultTypeDescriber.GetName(ret));
         }
 
-        record _Records1;
-        record _Records2(int A);
-        record _Records3(int A)
+        private record _Records1;
+
+        private record _Records2(int A);
+
+        private record _Records3(int A)
         {
             public string B { get; init; }
         }
-        record _Records4(int A)
+
+        private record _Records4(int A)
         {
             public string B { get; init; }
 
@@ -216,7 +219,8 @@ namespace Cesil.Tests
                 B = b;
             }
         }
-        record _Records5(string B): _Records4(B.Length)
+
+        private record _Records5(string B): _Records4(B.Length)
         {
             public double C { get; set; }
         }

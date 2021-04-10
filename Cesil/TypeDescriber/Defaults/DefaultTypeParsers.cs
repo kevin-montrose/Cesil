@@ -269,7 +269,7 @@ namespace Cesil
                 return true;
             }
 
-            static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
+            private static ReadOnlySpan<char> TrimLeadingWhitespace(ReadOnlySpan<char> span)
             {
                 var skip = 0;
                 var len = span.Length;
@@ -288,7 +288,7 @@ namespace Cesil
                 return span[skip..];
             }
 
-            static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
+            private static ReadOnlySpan<char> TrimTrailingWhitespace(ReadOnlySpan<char> span)
             {
                 var len = span.Length;
                 var start = len - 1;

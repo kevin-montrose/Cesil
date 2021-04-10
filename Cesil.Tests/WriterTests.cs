@@ -17,12 +17,14 @@ namespace Cesil.Tests
 #pragma warning disable IDE1006
     public class WriterTests
     {
-        record _Records1(int A, string B);
-        record _Records2(int A)
+        private record _Records1(int A, string B);
+
+        private record _Records2(int A)
         {
             public string B { get; set; }
         }
-        record _Records3(int C) : _Records1(C * 2, C.ToString()+"!") { }
+
+        private record _Records3(int C) : _Records1(C * 2, C.ToString()+"!") { }
 
         [Fact]
         public void Records()

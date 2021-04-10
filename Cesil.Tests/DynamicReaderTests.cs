@@ -16,12 +16,12 @@ namespace Cesil.Tests
 {
     public class DynamicReaderTests
     {
-        record _OddRecordsWithOptionalColumnsConversions1(int A)
+        private record _OddRecordsWithOptionalColumnsConversions1(int A)
         {
             public Guid? B { get; set; }
         }
 
-        record _OddRecordsWithOptionalColumnsConversions2
+        private record _OddRecordsWithOptionalColumnsConversions2
         {
             public _OddRecordConversions1 A { get; set; }
         }
@@ -197,8 +197,9 @@ namespace Cesil.Tests
             }
         }
 
-        record _OddRecordConversions1(int A, Guid? B);
-        record _OddRecordConversions2(_OddRecordConversions1 A);
+        private record _OddRecordConversions1(int A, Guid? B);
+
+        private record _OddRecordConversions2(_OddRecordConversions1 A);
 
         [Fact]
         public void OddRecordConversions()
@@ -371,12 +372,14 @@ namespace Cesil.Tests
             }
         }
 
-        record _CastToRecord1(int A, string B);
-        record _CastToRecord2(int A)
+        private record _CastToRecord1(int A, string B);
+
+        private record _CastToRecord2(int A)
         {
             public string B { get; set; }
         }
-        record _CastToRecord3(int C) : _CastToRecord1(C * 2, C.ToString() + "!") { }
+
+        private record _CastToRecord3(int C) : _CastToRecord1(C * 2, C.ToString() + "!") { }
 
         [Fact]
         public void CastToRecord()

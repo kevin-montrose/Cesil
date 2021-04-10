@@ -1,14 +1,12 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using Cesil.SourceGenerator;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
-
-using Cesil.SourceGenerator;
-
 using static Cesil.Tests.SourceGeneratorTestHelper;
-using System.Collections.Immutable;
 
 namespace Cesil.Tests
 {

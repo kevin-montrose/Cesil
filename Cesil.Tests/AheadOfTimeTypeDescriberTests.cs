@@ -9,7 +9,7 @@ namespace Cesil.Tests
     {
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_BadInstanceProviders_Type1), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadInstanceProviders_Generated1
+        private class _BadInstanceProviders_Generated1
         {
             [ConstructorInstanceProvider(typeof(string), typeof(string), 0)]
             [ConstructorInstanceProvider(typeof(int), typeof(string), 1)]
@@ -21,14 +21,14 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadInstanceProviders_Type1
+        private class _BadInstanceProviders_Type1
         {
 
         }
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_BadInstanceProviders_Type2), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadInstanceProviders_Generated2
+        private class _BadInstanceProviders_Generated2
         {
             [ConstructorInstanceProvider(typeof(_BadInstanceProviders_Type2), typeof(string), 0)]
             public static bool __InstanceProvider(out _BadInstanceProviders_Type2 val)
@@ -39,7 +39,7 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadInstanceProviders_Type2
+        private class _BadInstanceProviders_Type2
         {
             public _BadInstanceProviders_Type2(int a) { }
         }
@@ -66,7 +66,7 @@ namespace Cesil.Tests
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_BadDeserializableMembers_Type1), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadDeserializableMembers_Generated1
+        private class _BadDeserializableMembers_Generated1
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -82,14 +82,14 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadDeserializableMembers_Type1
+        private class _BadDeserializableMembers_Type1
         {
             public _BadDeserializableMembers_Type1(string p) { }
         }
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_BadDeserializableMembers_Type2), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadDeserializableMembers_Generated2
+        private class _BadDeserializableMembers_Generated2
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -105,14 +105,14 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadDeserializableMembers_Type2
+        private class _BadDeserializableMembers_Type2
         {
             public _BadDeserializableMembers_Type2(string p) { }
         }
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_BadDeserializableMembers_Type3), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadDeserializableMembers_Generated3
+        private class _BadDeserializableMembers_Generated3
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -127,7 +127,7 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadDeserializableMembers_Type3
+        private class _BadDeserializableMembers_Type3
         {
             
         }
@@ -162,7 +162,7 @@ namespace Cesil.Tests
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion("!!!", typeof(_BadVersion_Type), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _BadVersion_Generated
+        private class _BadVersion_Generated
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -176,7 +176,7 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _BadVersion_Type
+        private class _BadVersion_Type
         {
 
         }
@@ -192,7 +192,7 @@ namespace Cesil.Tests
 
 #pragma warning disable CS0618 // having to fake up some generated types, so using things we shouldn't normally use
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_MultipleGeneratedTypes_Type), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _MultipleGeneratedTypes_Generated1
+        private class _MultipleGeneratedTypes_Generated1
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -206,7 +206,7 @@ namespace Cesil.Tests
         }
 
         [GeneratedSourceVersion(AheadOfTimeTypeDescriber.CURRENT_CESIL_VERSION, typeof(_MultipleGeneratedTypes_Type), GeneratedSourceVersionAttribute.GeneratedTypeKind.Deserializer)]
-        class _MultipleGeneratedTypes_Generated2
+        private class _MultipleGeneratedTypes_Generated2
         {
             public static ImmutableArray<string> __ColumnNames { get; } = ImmutableArray.Create("Foo");
 
@@ -220,7 +220,7 @@ namespace Cesil.Tests
         }
 #pragma warning restore CS0618
 
-        class _MultipleGeneratedTypes_Type
+        private class _MultipleGeneratedTypes_Type
         {
 
         }
